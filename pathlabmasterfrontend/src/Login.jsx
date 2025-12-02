@@ -1,18 +1,24 @@
 import { useState } from "react";
+import Dashboard from "./Dashboard";
 import "./Login.css";
 
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleLogin = (e) => {
     e.preventDefault();
     if (username === "admin" && password === "admin") {
-      alert("Login successful!");
+      setIsLoggedIn(true);
     } else {
       alert("Invalid credentials");
     }
   };
+
+  if (isLoggedIn) {
+    return <Dashboard />;
+  }
 
   return (
     <div className="login-container">
@@ -26,6 +32,7 @@ export default function Login() {
             onChange={(e) => setUsername(e.target.value)}
             required
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -33,12 +40,14 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+
           <div className="options">
             <label>
               <input type="checkbox" /> Remember me
             </label>
             <a href="#">Forgot password?</a>
           </div>
+
           <button type="submit">Login</button>
         </form>
       </div>
