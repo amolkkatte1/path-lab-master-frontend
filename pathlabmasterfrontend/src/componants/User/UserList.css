@@ -1,0 +1,52 @@
+/* Container */
+.user-list {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+/* Table */
+.user-list table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+/* Header + Cells */
+.user-list th,
+.user-list td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  font-size: 14px;
+}
+
+/* Header Row */
+.user-list th {
+  background-color: #0d3b66;
+  color: #fff;
+  font-weight: bold;
+  text-align: left;
+}
+
+/* 🔍 Search Row Inputs */
+.user-list thead tr:nth-child(2) input {
+  width: 98%;
+  padding: 6px 10px;
+  border: 1px solid #dcdcdc;
+  background: #f1f1f1;
+  border-radius: 4px;
+  font-size: 13px;
+  outline: none;
+}
+
+.user-list thead tr:nth-child(2) input:focus {
+  background: #ffffff;
+  border-color: #0d3b66;
+}
+
+/* Hover Row Effect */
+.user-list tbody tr:hover {
+  background: #f2f8ff;
+}

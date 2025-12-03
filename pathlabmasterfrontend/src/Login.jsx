@@ -6,12 +6,13 @@ export default function Login() {
   const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userData, setUserData] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:8088/user/login", {
+      const response = await fetch("https://path-lab-master.onrender.com/user/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userName, password }),
@@ -27,7 +28,8 @@ export default function Login() {
       //   data: {...}
       // }
 
-      if (result.status === "SUCCESS" && result.statusCode === 1) {
+      if (result.status == "success" && result.statusCode == 1) {
+         setUserData(result.data);     // store data
         setIsLoggedIn(true);
       } else {
         alert(result.message || "Invalid login");
@@ -38,7 +40,7 @@ export default function Login() {
   };
 
   if (isLoggedIn) {
-    return <Dashboard />;
+    return <Dashboard user={userData} />;
   }
 
   return (
@@ -49,9 +51,9 @@ export default function Login() {
         <form onSubmit={handleLogin}>
           <input
             type="text"
-            placeholder="Username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="UserName"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
             required
           />
 
