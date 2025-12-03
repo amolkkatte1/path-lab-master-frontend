@@ -3,16 +3,37 @@ import Dashboard from "./Dashboard";
 import "./Login.css";
 
 export default function Login() {
-  const [username, setUsername] = useState("");
+  const [userName, setUserName] = useState("");
   const [password, setPassword] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    if (username === "admin" && password === "admin") {
-      setIsLoggedIn(true);
-    } else {
-      alert("Invalid credentials");
+
+    try {
+      const response = await fetch("http://localhost:8088/user/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName, password }),
+      });
+
+      const result = await response.json();
+
+      // result should match your Response class structure
+      // {
+      //   status: "SUCCESS",
+      //   statusCode: 200,
+      //   message: "Login success",
+      //   data: {...}
+      // }
+
+      if (result.status === "SUCCESS" && result.statusCode === 1) {
+        setIsLoggedIn(true);
+      } else {
+        alert(result.message || "Invalid login");
+      }
+    } catch (error) {
+      alert("Unable to login. Server error.");
     }
   };
 
@@ -24,6 +45,7 @@ export default function Login() {
     <div className="login-container">
       <div className="login-box">
         <h2>Log in to your Laboratory</h2>
+
         <form onSubmit={handleLogin}>
           <input
             type="text"
