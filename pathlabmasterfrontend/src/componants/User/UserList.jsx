@@ -26,7 +26,7 @@ export default function UserList() {
     };
   const fetchUsers = async () => {
     try {
-      const res = await fetch("http://localhost:8088/user/list");
+      const res = await fetch("https://path-lab-master.onrender.com/user/list");
       const data = await res.json();
       setUsers(data.data);
       setFilteredUsers(data.data);
