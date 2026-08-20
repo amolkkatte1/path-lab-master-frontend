@@ -43,7 +43,7 @@ export default async function AdminDashboard() {
             <form action={logout}>
               <button
                 type="submit"
-                className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15"
+                className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-400 cursor-pointer"
               >
                 Sign out
               </button>
