@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, stringifyApiPayload } from "@/lib/api";
 
 import {
   clearSessionUser,
@@ -75,7 +75,7 @@ export async function createUser(formData: FormData) {
     response = await fetch(API_ENDPOINTS.createUser, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: stringifyApiPayload(payload, ["updatedBy", "createdBy"]),
       cache: "no-store",
     });
   } catch {
@@ -95,7 +95,7 @@ export async function updateUser(formData: FormData) {
   const now = new Date().toISOString();
 
   const payload = {
-    userId: Number(value("userId")),
+    userId: value("userId"),
     firstName: value("firstName"),
     lastName: value("lastName"),
     personalMobileNumber: Number(value("personalMobileNumber")),
@@ -126,7 +126,7 @@ export async function updateUser(formData: FormData) {
     response = await fetch(API_ENDPOINTS.updateUser, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: stringifyApiPayload(payload, ["userId", "updatedBy", "createdBy"]),
       cache: "no-store",
     });
   } catch {
@@ -142,7 +142,7 @@ export async function updateUser(formData: FormData) {
 
 export async function deleteUser(formData: FormData) {
   await requireUserType("SuperAdmin");
-  const userId = Number(String(formData.get("userId") ?? "").trim());
+  const userId = String(formData.get("userId") ?? "").trim();
 
   let response: Response;
 
@@ -150,7 +150,7 @@ export async function deleteUser(formData: FormData) {
     response = await fetch(API_ENDPOINTS.deleteUser, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId }),
+      body: stringifyApiPayload({ userId }, ["userId"]),
       cache: "no-store",
     });
   } catch {

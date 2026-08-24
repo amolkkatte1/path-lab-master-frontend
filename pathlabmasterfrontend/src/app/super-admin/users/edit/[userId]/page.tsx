@@ -2,7 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { updateUser } from "@/app/actions";
-import { API_ENDPOINTS } from "@/lib/api";
+import {
+  API_ENDPOINTS,
+  parseApiResponse,
+  stringifyApiPayload,
+} from "@/lib/api";
 
 type ApiUser = {
   userId: number | string;
@@ -41,7 +45,7 @@ async function getUser(userId: string) {
     response = await fetch(API_ENDPOINTS.getUser, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: Number(userId) }),
+      body: stringifyApiPayload({ userId }, ["userId"]),
       cache: "no-store",
     });
   } catch {
@@ -52,7 +56,7 @@ async function getUser(userId: string) {
     return null;
   }
 
-  const payload = (await response.json()) as GetUserApiResponse;
+  const payload = await parseApiResponse<GetUserApiResponse>(response);
   return "userId" in payload ? payload : payload.data ?? null;
 }
 

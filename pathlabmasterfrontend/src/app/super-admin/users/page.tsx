@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FiEdit2, FiPlus } from "react-icons/fi";
 
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, parseApiResponse } from "@/lib/api";
 
 import { DeleteUserButton } from "./delete-user-button";
 import { FlashMessage } from "./flash-message";
@@ -40,7 +40,7 @@ async function getUsers() {
       return { users: [], error: `The user service returned ${response.status}.` };
     }
 
-    const payload = (await response.json()) as UsersApiResponse;
+    const payload = await parseApiResponse<UsersApiResponse>(response);
     const users = Array.isArray(payload) ? payload : payload.data ?? [];
 
     return { users, error: null };

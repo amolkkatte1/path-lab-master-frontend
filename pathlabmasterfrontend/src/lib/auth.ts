@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { API_ENDPOINTS } from "@/lib/api";
+import { API_ENDPOINTS, parseApiResponse, stringifyApiPayload } from "@/lib/api";
 
 export type UserTypeName = "Administrator" | "SuperAdmin";
 
 export type SessionUser = {
-  userId: number;
+  userId: string;
   firstName: string;
   lastName: string;
   labName: string;
@@ -17,7 +17,7 @@ export type SessionUser = {
 };
 
 type LoginApiUser = {
-  userId: number;
+  userId: string;
   firstName: string;
   lastName: string;
   labName: string;
@@ -101,10 +101,12 @@ export async function loginWithApi(userName: string, password: string) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      userName,
-      password,
-    }),
+    body: stringifyApiPayload(
+      {
+        userName,
+        password,
+      },
+    ),
     cache: "no-store",
   });
 
@@ -120,7 +122,7 @@ export async function loginWithApi(userName: string, password: string) {
     return { kind: "unavailable" as const };
   }
 
-  const payload = (await response.json()) as LoginApiResponse;
+  const payload = await parseApiResponse<LoginApiResponse>(response);
   const resolvedUser = resolveApiUser(payload);
 
   if (!resolvedUser) {
