@@ -23,15 +23,15 @@ export default async function SuperAdminDashboard() {
 
   return (
     <section className="mx-auto max-w-7xl space-y-6">
-      <header className="overflow-hidden rounded-[28px] border border-sky-300/20 bg-white/10 p-6 backdrop-blur sm:p-8">
-        <div className="space-y-3">
+      <header className="overflow-hidden rounded-[24px] border border-sky-300/20 bg-white/10 px-6 py-4 backdrop-blur sm:px-7 sm:py-5">
+        <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-sky-200">
             Super Admin Dashboard
           </p>
-          <h2 className="text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
             Strategic control for {user.firstName} {user.lastName}
           </h2>
-          <p className="max-w-3xl text-sm leading-6 text-slate-200 sm:text-base">
+          <p className="max-w-3xl text-sm leading-5 text-slate-200 sm:text-base">
             Use this control center to manage platform-wide users, lab masters,
             test configuration, and overall operating health across every
             connected pathology center.

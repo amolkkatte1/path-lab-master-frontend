@@ -4,6 +4,7 @@ import { logout } from "@/app/actions";
 import { requireUserType } from "@/lib/auth";
 
 import { SuperAdminSidebarNav } from "./sidebar-nav";
+import { TopbarClock } from "./topbar-clock";
 
 export default async function SuperAdminLayout(
   props: LayoutProps<"/super-admin">,
@@ -54,6 +55,8 @@ export default async function SuperAdminLayout(
               </div>
 
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+                <TopbarClock/>
+
                 <div className="rounded-2xl border border-white/10 bg-white/8 px-4 py-3">
                   <p className="text-sm font-semibold text-white">
                     {user.firstName} {user.lastName}
@@ -75,7 +78,7 @@ export default async function SuperAdminLayout(
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-4 lg:py-4">
             {props.children}
           </main>
         </div>

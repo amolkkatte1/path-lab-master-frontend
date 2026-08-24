@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { API_ENDPOINTS } from "@/lib/api";
+
 export type UserTypeName = "Administrator" | "SuperAdmin";
 
 export type SessionUser = {
@@ -28,8 +30,6 @@ type LoginApiUser = {
 type LoginApiResponse = LoginApiUser | { data?: LoginApiUser };
 
 const SESSION_COOKIE = "pathlab-session";
-const LOGIN_API_URL = "https://path-lab-master.onrender.com/user/login";
-
 function normalizeUserTypeName(userTypeName: string): UserTypeName | null {
   if (userTypeName === "Administrator" || userTypeName === "SuperAdmin") {
     return userTypeName;
@@ -96,7 +96,7 @@ export function getDashboardPath(userTypeName: UserTypeName) {
 }
 
 export async function loginWithApi(userName: string, password: string) {
-  const response = await fetch(LOGIN_API_URL, {
+  const response = await fetch(API_ENDPOINTS.login, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

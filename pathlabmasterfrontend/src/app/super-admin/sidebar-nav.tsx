@@ -9,7 +9,6 @@ import {
   FiHome,
   FiSettings,
   FiShield,
-  FiUserPlus,
   FiUsers,
 } from "react-icons/fi";
 
@@ -26,12 +25,6 @@ const primaryItems: NavItem[] = [
     label: "Overview",
     icon: FiHome,
     match: "exact",
-  },
-  {
-    href: "/super-admin/users/create",
-    label: "Create User",
-    icon: FiUserPlus,
-    match: "prefix",
   },
   {
     href: "/super-admin/users",
