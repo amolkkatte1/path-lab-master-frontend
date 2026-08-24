@@ -1,5 +1,7 @@
 "use client";
 
+import { FiTrash2 } from "react-icons/fi";
+
 import { deleteUser } from "@/app/actions";
 
 export function DeleteUserButton({ userId }: { userId: number | string }) {
@@ -15,9 +17,11 @@ export function DeleteUserButton({ userId }: { userId: number | string }) {
       <input type="hidden" name="userId" value={userId} />
       <button
         type="submit"
-        className="rounded-lg border border-red-300/20 bg-red-400/10 px-3 py-2 text-xs font-semibold text-red-100 transition hover:bg-red-400/20"
+        aria-label={`Delete user ${userId}`}
+        title="Delete user"
+        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-red-300/20 bg-red-400/10 text-red-100 transition hover:bg-red-400/20"
       >
-        Delete
+        <FiTrash2 className="h-4 w-4" />
       </button>
     </form>
   );

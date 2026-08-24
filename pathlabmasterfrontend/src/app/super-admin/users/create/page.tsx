@@ -31,9 +31,9 @@ export default async function CreateUserPage({ searchParams }: CreateUserPagePro
   return (
     <section className="mx-auto max-w-7xl space-y-6">
       <header className="rounded-[20px] border border-emerald-300/20 bg-white/10 px-5 py-3 backdrop-blur sm:px-6 sm:py-4">
-        <Link href="/super-admin/users" className="text-sm text-sky-200 hover:text-white">
+        {/* <Link href="/super-admin/users" className="text-sm text-sky-200 hover:text-white">
           ← Back to users
-        </Link>
+        </Link> */}
         <p className="mt-2 text-sm font-semibold uppercase tracking-[0.28em] text-emerald-200">
           User Management
         </p>
@@ -76,6 +76,9 @@ export default async function CreateUserPage({ searchParams }: CreateUserPagePro
         <button type="submit" className="mt-7 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
           Create user
         </button>
+        <Link href="/super-admin/users" className="mt-7 ml-3 inline-block rounded-xl bg-gray-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
+          Cancel
+        </Link>
       </form>
     </section>
   );
