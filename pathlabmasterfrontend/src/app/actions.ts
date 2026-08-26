@@ -89,6 +89,107 @@ export async function createUser(formData: FormData) {
   redirect("/super-admin/users?created=1");
 }
 
+export async function createPatient(formData: FormData) {
+  const currentUser = await requireUserType("Administrator");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+  const dateOfBirth = value("dateOfBirth").replace(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+    "$3/$2/$1",
+  );
+
+  const payload = {
+    firstName: value("firstName"),
+    middleName: value("middleName"),
+    lastName: value("lastName"),
+    mobileNumber: Number(value("mobileNumber")),
+    prefix: value("prefix"),
+    mailId: value("mailId"),
+    gender: value("gender"),
+    dateOfBirth,
+    year: Number(value("year")),
+    month: Number(value("month")),
+    days: Number(value("days")),
+    adharNumber: Number(value("adharNumber")),
+    labName: value("labName"),
+    labId: Number(value("labId")),
+    updatedAt: now,
+    updatedBy: currentUser.userId,
+    createdAt: now,
+    createdBy: currentUser.userId,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.createPatient, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["labId", "updatedBy", "createdBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/admin/patients/create?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/admin/patients/create?error=${response.status}`);
+  }
+
+  redirect("/admin/patients?created=1");
+}
+
+export async function updatePatient(formData: FormData) {
+  const currentUser = await requireUserType("Administrator");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+  const dateOfBirth = value("dateOfBirth").replace(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+    "$3/$2/$1",
+  );
+
+  const payload = {
+    patientId: Number(value("patientId")),
+    firstName: value("firstName"),
+    middleName: value("middleName"),
+    lastName: value("lastName"),
+    mobileNumber: Number(value("mobileNumber")),
+    prefix: value("prefix"),
+    mailId: value("mailId"),
+    gender: value("gender"),
+    dateOfBirth,
+    year: Number(value("year")),
+    month: Number(value("month")),
+    days: Number(value("days")),
+    adharNumber: Number(value("adharNumber")),
+    labName: value("labName"),
+    labId: Number(value("labId")),
+    createdBy: Number(value("createdBy")),
+    updatedBy: currentUser.userId,
+    createdAt: value("createdAt"),
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.updatePatient, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["patientId", "labId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect(`/admin/patients/edit/${payload.patientId}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`/admin/patients/edit/${payload.patientId}?error=${response.status}`);
+  }
+
+  redirect("/admin/patients?updated=1");
+}
+
 export async function updateUser(formData: FormData) {
   const currentUser = await requireUserType("SuperAdmin");
   const value = (name: string) => String(formData.get(name) ?? "").trim();

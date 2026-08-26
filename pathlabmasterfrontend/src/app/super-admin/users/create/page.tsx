@@ -73,10 +73,10 @@ export default async function CreateUserPage({ searchParams }: CreateUserPagePro
           </label>
         </div>
 
-        <button type="submit" className="mt-7 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+        <button type="submit" className="create-action-button mt-7 rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
           Create user
         </button>
-        <Link href="/super-admin/users" className="mt-7 ml-3 inline-block rounded-xl bg-gray-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
+        <Link href="/super-admin/users" className="create-action-button mt-7 ml-3 inline-block rounded-xl bg-gray-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-gray-800">
           Cancel
         </Link>
       </form>

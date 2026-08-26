@@ -7,6 +7,10 @@ export const API_ENDPOINTS = {
   updateUser: `${API_BASE_URL}/user/update`,
   getUser: `${API_BASE_URL}/user/get`,
   deleteUser: `${API_BASE_URL}/user/delete`,
+  patientList: `${API_BASE_URL}/patient/list`,
+  createPatient: `${API_BASE_URL}/patient/create`,
+  getPatient: `${API_BASE_URL}/patient/get`,
+  updatePatient: `${API_BASE_URL}/patient/update`,
 } as const;
 
 const LARGE_INTEGER_PATTERN = /:\s*(-?\d{16,})(?=\s*[,}\]])/g;

@@ -1,9 +1,9 @@
 import { requireUserType } from "@/lib/auth";
+import Link from "next/link";
 import {
   FiActivity,
   FiAlertCircle,
   FiArrowUpRight,
-  FiCalendar,
   FiClipboard,
   FiChevronRight,
   FiClock,
@@ -12,6 +12,7 @@ import {
   FiSearch,
   FiUserPlus,
 } from "react-icons/fi";
+import { TbCurrencyRupee } from "react-icons/tb";
 
 const patients = [
   {
@@ -82,9 +83,10 @@ const adminHighlights: Array<{
 ];
 
 const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
-  { icon: FiUserPlus, label: "Register patient" },
-  { icon: FiClipboard, label: "Create test request" },
-  { icon: FiFileText, label: "Review reports" },
+  { icon: FiUserPlus, label: "Add Patient" },
+  { icon: TbCurrencyRupee, label: "Billing" },
+  { icon: FiClipboard, label: "Create Test Request" },
+  { icon: FiFileText, label: "Review Reports" },
 ];
 
 function statusClasses(status: string) {
@@ -120,11 +122,11 @@ export default async function AdminDashboard() {
         </div>
       </div>
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="mx-1 rounded-2xl flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4 bg-none">
         {adminHighlights.map(({ label, value, detail, icon: Icon, color }) => (
           <article
             key={label}
-            className="rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)]"
+            className="min-w-[calc(50vw-3rem)] snap-start rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)] sm:min-w-0"
           >
             <div className="flex items-start justify-between">
               <p className="text-sm text-slate-400">{label}</p>
@@ -210,23 +212,23 @@ export default async function AdminDashboard() {
         </article>
 
         <aside className="space-y-5">
-          <article className="rounded-2xl border border-white/10 bg-white/8 p-5">
+          <article className="rounded-2xl border border-white/10 bg-white/8 p-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-white">
+              <h2 className="text-base font-semibold text-white">
                 Quick actions
               </h2>
               <FiArrowUpRight className="text-slate-500" />
             </div>
-            <div className="mt-4 grid gap-2">
+            <div className="mt-3 grid gap-1.5">
               {quickActions.map(({ icon: Icon, label }) => (
-                <button
-                  type="button"
+                <Link
+                  href="/admin/patients/create"
                   key={label}
-                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-left text-sm font-medium text-slate-200 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
                 >
                   <Icon className="text-emerald-300" />
                   {label}
-                </button>
+                </Link>
               ))}
             </div>
           </article>

@@ -25,8 +25,8 @@ export function SuperAdminShell({
   }, [pathname]);
 
   return (
-    <div className="workspace-shell min-h-screen bg-[radial-gradient(circle_at_top,_#15304f_0%,_#07121f_42%,_#020617_100%)] text-white">
-      <div className="flex min-h-screen">
+    <div className="workspace-shell h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#15304f_0%,_#07121f_42%,_#020617_100%)] text-white">
+      <div className="flex h-screen">
         <div
           aria-hidden="true"
           onClick={() => setSidebarOpen(false)}
@@ -36,7 +36,7 @@ export function SuperAdminShell({
         />
 
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur transition-transform duration-300 lg:static lg:min-h-screen lg:w-[240px] lg:translate-x-0 lg:bg-slate-950/70 xl:w-[290px] ${
+          className={`fixed inset-y-0 left-0 z-50 flex h-screen w-[280px] flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur transition-transform duration-300 lg:static lg:min-h-screen lg:w-[240px] lg:translate-x-0 lg:bg-slate-950/70 xl:w-[290px] ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -57,7 +57,7 @@ export function SuperAdminShell({
           {sidebarContent}
         </aside>
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="flex h-screen min-h-0 min-w-0 flex-1 flex-col">
           <header className="border-b border-white/10 bg-slate-950/35 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
             <div className="flex items-start gap-3">
               <button
@@ -73,7 +73,7 @@ export function SuperAdminShell({
             </div>
           </header>
 
-          <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-4 lg:py-4">
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-4 lg:py-4">
             {children}
           </main>
         </div>

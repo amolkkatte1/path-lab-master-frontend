@@ -185,13 +185,13 @@ export function UsersTable({ users }: UsersTableProps) {
 
       <div className="max-w-full overflow-x-auto">
         <table className="w-full min-w-[1080px] xl:min-w-[1200px] text-left text-sm">
-          <thead className="bg-slate-950/30 text-slate-400">
+          <thead className="text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
               <th className="px-5 py-4 font-semibold">
                 <button
                   type="button"
                   onClick={() => toggleSort("userId")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   User ID
                   {renderSortIndicator(sortKey, sortDirection, "userId")}
@@ -201,7 +201,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("user")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   User
                   {renderSortIndicator(sortKey, sortDirection, "user")}
@@ -211,7 +211,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("role")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   Role
                   {renderSortIndicator(sortKey, sortDirection, "role")}
@@ -221,7 +221,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("email")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   Email
                   {renderSortIndicator(sortKey, sortDirection, "email")}
@@ -231,7 +231,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("lab")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   Lab
                   {renderSortIndicator(sortKey, sortDirection, "lab")}
@@ -241,7 +241,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("contact")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   Contact
                   {renderSortIndicator(sortKey, sortDirection, "contact")}
@@ -251,7 +251,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 <button
                   type="button"
                   onClick={() => toggleSort("location")}
-                  className="flex items-center gap-2 text-left transition hover:text-white"
+                  className="flex items-center gap-2 text-left transition"
                 >
                   Location
                   {renderSortIndicator(sortKey, sortDirection, "location")}
@@ -261,7 +261,7 @@ export function UsersTable({ users }: UsersTableProps) {
                 Actions
               </th>
             </tr>
-            <tr className="border-t border-white/10">
+            <tr className="border-b border-white/10">
               <th className="px-5 pb-4">
                 <label className="relative block">
                   <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
@@ -351,7 +351,7 @@ export function UsersTable({ users }: UsersTableProps) {
               </tr>
             ) : (
               sortedUsers.map((user) => (
-                <tr key={user.userId} className="transition hover:bg-white/5">
+                <tr key={user.userId} className="user-table-row transition hover:bg-white/5">
                   <td className="px-5 py-4">
                     <Link
                       href={`/super-admin/users/edit/${user.userId}`}

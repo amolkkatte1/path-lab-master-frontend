@@ -47,6 +47,10 @@ body {
   color: #172033;
 }
 
+.theme-light .workspace-shell .create-action-button {
+  color: #ffffff;
+}
+
 .theme-light .workspace-shell .text-slate-100,
 .theme-light .workspace-shell .text-slate-200,
 .theme-light .workspace-shell .text-slate-300 {
@@ -77,6 +81,26 @@ body {
 
 .theme-light .workspace-shell .divide-white\/8 > :not([hidden]) ~ :not([hidden]) {
   border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .divide-white\/10 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #cbd5e1;
+}
+
+.theme-light .workspace-shell .user-table-row {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.theme-light .workspace-shell .user-table-row:hover {
+  background-color: rgba(14, 165, 233, 0.12);
+}
+
+.theme-light .workspace-shell .patient-table-row {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.theme-light .workspace-shell .patient-table-row:hover {
+  background-color: rgba(16, 185, 129, 0.12);
 }
 
 .theme-light .workspace-shell .bg-emerald-500.text-white,
