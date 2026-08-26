@@ -1,103 +1,253 @@
-import { logout } from "@/app/actions";
 import { requireUserType } from "@/lib/auth";
+import {
+  FiActivity,
+  FiAlertCircle,
+  FiArrowUpRight,
+  FiCalendar,
+  FiClipboard,
+  FiChevronRight,
+  FiClock,
+  FiFileText,
+  FiPlus,
+  FiSearch,
+  FiUserPlus,
+} from "react-icons/fi";
 
-const adminHighlights = [
+const patients = [
   {
-    label: "Pending Approvals",
-    value: "12",
-    detail: "Reports waiting for review today",
+    name: "Aarav Mehta",
+    id: "PL-20481",
+    test: "CBC + Lipid Profile",
+    time: "09:42 AM",
+    status: "Ready",
   },
   {
-    label: "Samples Processed",
-    value: "184",
-    detail: "Completed by the admin team this week",
+    name: "Nisha Kulkarni",
+    id: "PL-20479",
+    test: "Thyroid Panel",
+    time: "09:28 AM",
+    status: "Processing",
   },
   {
-    label: "Open Alerts",
-    value: "03",
-    detail: "Operational issues needing follow-up",
+    name: "Rohan Shah",
+    id: "PL-20476",
+    test: "Liver Function Test",
+    time: "09:11 AM",
+    status: "Awaiting sample",
+  },
+  {
+    name: "Meera Iyer",
+    id: "PL-20472",
+    test: "HbA1c",
+    time: "08:54 AM",
+    status: "Ready",
   },
 ];
+
+const adminHighlights: Array<{
+  label: string;
+  value: string;
+  detail: string;
+  icon: typeof FiActivity;
+  color: string;
+}> = [
+  {
+    label: "Today's samples",
+    value: "184",
+    detail: "+12.5%",
+    icon: FiActivity,
+    color: "text-emerald-300",
+  },
+  {
+    label: "Pending reports",
+    value: "27",
+    detail: "8 need review",
+    icon: FiClock,
+    color: "text-amber-300",
+  },
+  {
+    label: "Total patients",
+    value: "1,248",
+    detail: "+4.8% this month",
+    icon: FiUserPlus,
+    color: "text-sky-300",
+  },
+  {
+    label: "Critical alerts",
+    value: "03",
+    detail: "Requires attention",
+    icon: FiAlertCircle,
+    color: "text-rose-300",
+  },
+];
+
+const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
+  { icon: FiUserPlus, label: "Register patient" },
+  { icon: FiClipboard, label: "Create test request" },
+  { icon: FiFileText, label: "Review reports" },
+];
+
+function statusClasses(status: string) {
+  if (status === "Ready") return "bg-emerald-400/15 text-emerald-300";
+  if (status === "Processing") return "bg-sky-400/15 text-sky-300";
+  return "bg-amber-400/15 text-amber-300";
+}
 
 export default async function AdminDashboard() {
   const user = await requireUserType("Administrator");
 
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-8 lg:px-12">
-      <section className="mx-auto max-w-6xl space-y-8">
-        <header className="rounded-[28px] border border-white/10 bg-white/8 p-6 backdrop-blur sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-emerald-300">
-                Admin Dashboard
-              </p>
-              <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                Welcome back, {user.firstName} {user.lastName}
-              </h1>
-              <p className="max-w-2xl text-sm leading-6 text-slate-300 sm:text-base">
-                You are signed in with the admin role. This dashboard is scoped
-                to laboratory operations, approvals, and daily monitoring.
+    <section className="mx-auto max-w-[1500px] space-y-5">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-300">
+            Lab operations
+          </p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            Good morning, {user.firstName}
+          </h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Here&apos;s what is happening at {user.labName} today.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.24)] transition hover:bg-emerald-400"
+          >
+            <FiPlus /> New test request
+          </button>
+        </div>
+      </div>
+
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {adminHighlights.map(({ label, value, detail, icon: Icon, color }) => (
+          <article
+            key={label}
+            className="rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)]"
+          >
+            <div className="flex items-start justify-between">
+              <p className="text-sm text-slate-400">{label}</p>
+              <Icon className={`h-5 w-5 ${color}`} />
+            </div>
+            <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+            <p className={`mt-2 text-xs ${color}`}>{detail}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
+        <article className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45">
+          <div className="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Today&apos;s patient queue
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Samples received at the collection desk
               </p>
             </div>
-
-            <form action={logout}>
-              <button
-                type="submit"
-                className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-400 cursor-pointer"
-              >
-                Sign out
-              </button>
-            </form>
+            <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400">
+              <FiSearch />
+              <input
+                className="w-full bg-transparent outline-none placeholder:text-slate-500 sm:w-44"
+                placeholder="Search patients"
+                aria-label="Search patients"
+              />
+            </label>
           </div>
-        </header>
-
-        <section className="grid gap-4 md:grid-cols-3">
-          {adminHighlights.map((item) => (
-            <article
-              key={item.label}
-              className="rounded-[24px] border border-white/10 bg-slate-900/70 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)]"
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[680px] text-left text-sm">
+              <thead className="bg-white/5 text-xs uppercase tracking-[0.14em] text-slate-500">
+                <tr>
+                  <th className="px-5 py-3 font-medium">Patient</th>
+                  <th className="px-5 py-3 font-medium">Requested tests</th>
+                  <th className="px-5 py-3 font-medium">Received</th>
+                  <th className="px-5 py-3 font-medium">Status</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/8">
+                {patients.map((patient) => (
+                  <tr key={patient.id} className="transition hover:bg-white/5">
+                    <td className="px-5 py-4">
+                      <p className="font-semibold text-white">{patient.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {patient.id}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-slate-300">{patient.test}</td>
+                    <td className="px-5 py-4 text-slate-400">{patient.time}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(patient.status)}`}
+                      >
+                        {patient.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <button
+                        type="button"
+                        aria-label={`Open ${patient.name}`}
+                        className="text-slate-400 transition hover:text-white"
+                      >
+                        <FiChevronRight />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-white/10 p-4 text-right">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
             >
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="mt-3 text-4xl font-semibold text-white">
-                {item.value}
-              </p>
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                {item.detail}
-              </p>
-            </article>
-          ))}
-        </section>
+              View all patients <FiArrowUpRight />
+            </button>
+          </div>
+        </article>
 
-        <section className="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
-          <article className="rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_20px_60px_rgba(15,23,42,0.12)]">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-700">
-              Operations Queue
-            </p>
-            <h2 className="mt-3 text-2xl font-semibold">
-              Today&apos;s admin focus
-            </h2>
-            <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-600">
-              <li>Approve incoming user access requests from lab staff.</li>
-              <li>Review pending pathology sample escalations.</li>
-              <li>Monitor turnaround times for high-priority reports.</li>
-            </ul>
+        <aside className="space-y-5">
+          <article className="rounded-2xl border border-white/10 bg-white/8 p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">
+                Quick actions
+              </h2>
+              <FiArrowUpRight className="text-slate-500" />
+            </div>
+            <div className="mt-4 grid gap-2">
+              {quickActions.map(({ icon: Icon, label }) => (
+                <button
+                  type="button"
+                  key={label}
+                  className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-left text-sm font-medium text-slate-200 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
+                >
+                  <Icon className="text-emerald-300" />
+                  {label}
+                </button>
+              ))}
+            </div>
           </article>
-
-          <article className="rounded-[24px] border border-emerald-400/20 bg-emerald-500/10 p-6">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-emerald-300">
-              Access Scope
+          <article className="rounded-2xl border border-amber-300/20 bg-amber-400/10 p-5">
+            <div className="flex items-center gap-2 text-amber-200">
+              <FiAlertCircle />
+              <h2 className="font-semibold">Attention needed</h2>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-amber-50/80">
+              3 critical reports are waiting for validation before they can be
+              released.
             </p>
-            <h2 className="mt-3 text-2xl font-semibold text-white">
-              Role: {user.userTypeName}
-            </h2>
-            <p className="mt-4 text-sm leading-6 text-emerald-50/90">
-              Signed in as `{user.userName}` for `{user.labName}`. This route is
-              restricted to the `Administrator` role, so other roles are sent
-              back to login.
-            </p>
+            <button
+              type="button"
+              className="mt-4 text-sm font-semibold text-amber-200 hover:text-white"
+            >
+              Review alerts <FiArrowUpRight className="ml-1 inline" />
+            </button>
           </article>
-        </section>
+        </aside>
       </section>
-    </main>
+    </section>
   );
 }

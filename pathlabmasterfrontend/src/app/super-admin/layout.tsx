@@ -69,7 +69,7 @@ export default async function SuperAdminLayout(
             <form action={logout} className="hidden lg:block">
               <button
                 type="submit"
-                className="cursor-pointer rounded-xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-red-400"
+                className="cursor-pointer rounded-xl border border-white/15 bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-red-400"
               >
                 Sign out
               </button>

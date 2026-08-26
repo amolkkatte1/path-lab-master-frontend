@@ -4,17 +4,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { FiMenu, FiX } from "react-icons/fi";
 
-type SuperAdminShellProps = {
+type AdminShellProps = {
   children: ReactNode;
   headerContent: ReactNode;
   sidebarContent: ReactNode;
 };
 
-export function SuperAdminShell({
-  children,
-  headerContent,
-  sidebarContent,
-}: Readonly<SuperAdminShellProps>) {
+export function AdminShell({ children, headerContent, sidebarContent }: Readonly<AdminShellProps>) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -36,14 +32,12 @@ export function SuperAdminShell({
         />
 
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur transition-transform duration-300 lg:static lg:min-h-screen lg:w-[240px] lg:translate-x-0 lg:bg-slate-950/70 xl:w-[290px] ${
+          className={`fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur transition-transform duration-300 lg:static lg:min-h-screen lg:w-[250px] lg:translate-x-0 lg:bg-slate-950/70 xl:w-[290px] ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           <div className="mb-6 flex items-center justify-between lg:hidden">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-200">
-              Navigation
-            </p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-200">Navigation</p>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -53,7 +47,6 @@ export function SuperAdminShell({
               <FiX className="h-5 w-5" />
             </button>
           </div>
-
           {sidebarContent}
         </aside>
 
@@ -68,14 +61,10 @@ export function SuperAdminShell({
               >
                 <FiMenu className="h-5 w-5" />
               </button>
-
               <div className="min-w-0 flex-1">{headerContent}</div>
             </div>
           </header>
-
-          <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-4 lg:py-4">
-            {children}
-          </main>
+          <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-5">{children}</main>
         </div>
       </div>
     </div>
