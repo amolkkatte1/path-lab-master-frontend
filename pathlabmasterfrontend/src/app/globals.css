@@ -103,6 +103,14 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.theme-light .workspace-shell .doctor-table-row {
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.theme-light .workspace-shell .doctor-table-row:hover {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
 .theme-light .workspace-shell .bg-emerald-500.text-white,
 .theme-light .workspace-shell .bg-sky-500.text-white {
   color: #ffffff;

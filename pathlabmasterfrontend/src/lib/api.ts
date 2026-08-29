@@ -11,7 +11,20 @@ export const API_ENDPOINTS = {
   createPatient: `${API_BASE_URL}/patient/create`,
   getPatient: `${API_BASE_URL}/patient/get`,
   updatePatient: `${API_BASE_URL}/patient/update`,
+  doctorList: `${API_BASE_URL}/doctor/list`,
+  createDoctor: `${API_BASE_URL}/doctor/create`,
+  getDoctor: `${API_BASE_URL}/doctor/get`,
+  updateDoctor: `${API_BASE_URL}/doctor/update`,
+  deleteDoctor: `${API_BASE_URL}/doctor/delete`,
 } as const;
+
+export function getPatientListByLabId(labId: number | string) {
+  return `${API_BASE_URL}/patient/list/labId/${labId}`;
+}
+
+export function getDoctorListByLabId(labId: number | string) {
+  return `${API_BASE_URL}/doctor/list/labId/${labId}`;
+}
 
 const LARGE_INTEGER_PATTERN = /:\s*(-?\d{16,})(?=\s*[,}\]])/g;
 

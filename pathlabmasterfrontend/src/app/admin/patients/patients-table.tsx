@@ -15,9 +15,11 @@ export type Patient = {
   gender?: string;
   dateOfBirth?: string;
   labName?: string;
+  doctorId?: number | string;
+  doctorName?: string;
 };
 
-type SortKey = "patient" | "contact" | "gender" | "dateOfBirth" | "lab";
+type SortKey = "patient" | "contact" | "gender" | "dateOfBirth" | "doctor" | "lab";
 type SortDirection = "asc" | "desc";
 type FilterKey = SortKey;
 
@@ -30,6 +32,7 @@ const initialFilters: Record<FilterKey, string> = {
   contact: "",
   gender: "",
   dateOfBirth: "",
+  doctor: "",
   lab: "",
 };
 
@@ -44,6 +47,7 @@ function cellValue(patient: Patient, key: SortKey) {
   if (key === "contact") return `${patient.mobileNumber ?? ""} ${patient.mailId ?? ""}`;
   if (key === "gender") return patient.gender ?? "";
   if (key === "dateOfBirth") return patient.dateOfBirth ?? "";
+  if (key === "doctor") return `${patient.doctorName ?? ""} ${patient.doctorId ?? ""}`;
   return patient.labName ?? "";
 }
 
@@ -103,6 +107,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                 ["contact", "Contact"],
                 ["gender", "Gender"],
                 ["dateOfBirth", "Date of birth"],
+                ["doctor", "Doctor"],
                 ["lab", "Laboratory"],
               ] as const).map(([key, label]) => (
                 <th key={key} className="px-5 py-3 font-semibold">
@@ -125,6 +130,10 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                 <td className="px-5 py-4"><p className="flex items-center gap-2 text-slate-300"><FiPhone className="text-emerald-300" />{patient.mobileNumber ?? "-"}</p><p className="mt-1 flex items-center gap-2 text-xs text-slate-500"><FiMail />{patient.mailId ?? "-"}</p></td>
                 <td className="px-5 py-4 text-slate-300">{patient.gender ?? "-"}</td>
                 <td className="px-5 py-4 text-slate-400">{patient.dateOfBirth ?? "-"}</td>
+                <td className="px-5 py-4 text-slate-300">
+                  <p className="font-medium text-white">{patient.doctorName ?? "-"}</p>
+                  <p className="mt-1 text-xs text-slate-500">ID: {patient.doctorId ?? "-"}</p>
+                </td>
                 <td className="px-5 py-4 text-slate-300">{patient.labName ?? "-"}</td>
               </tr>
             ))}

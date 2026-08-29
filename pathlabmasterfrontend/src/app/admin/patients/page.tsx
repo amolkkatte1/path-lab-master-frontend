@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { FiPlus, FiUsers } from "react-icons/fi";
 
-import { API_ENDPOINTS, parseApiResponse } from "@/lib/api";
+import { getPatientListByLabId, parseApiResponse } from "@/lib/api";
+import { requireUserType } from "@/lib/auth";
 import { PatientsTable, type Patient } from "./patients-table";
 
 type PatientApiResponse = {
@@ -9,8 +10,10 @@ type PatientApiResponse = {
 };
 
 async function getPatients() {
+  const currentUser = await requireUserType("Administrator");
+
   try {
-    const response = await fetch(API_ENDPOINTS.patientList, {
+    const response = await fetch(getPatientListByLabId(currentUser.labId), {
       cache: "no-store",
     });
 
