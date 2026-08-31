@@ -52,7 +52,10 @@ export default async function CreateDoctorPage({
                 name === "educationQulification" ? "sm:col-span-2" : ""
               }
             >
-              <span className="mb-2 block text-sm font-semibold">{label}</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                {label}
+                {(name === "doctorName" || name === "doctorMailId" || name === "doctorMobileNumber") && <span className="text-red-500"> *</span>}
+              </span>
               <input
                 name={name}
                 type={type}
@@ -65,7 +68,9 @@ export default async function CreateDoctorPage({
             </label>
           ))}
           <label>
-            <span className="mb-2 block text-sm font-semibold">Lab name</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Lab name <span className="text-red-500">*</span>
+            </span>
             <input
               name="labName"
               defaultValue={user.labName}
@@ -74,7 +79,9 @@ export default async function CreateDoctorPage({
             />
           </label>
           <label>
-            <span className="mb-2 block text-sm font-semibold">Lab ID</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Lab ID <span className="text-red-500">*</span>
+            </span>
             <input
               name="labId"
               type="number"

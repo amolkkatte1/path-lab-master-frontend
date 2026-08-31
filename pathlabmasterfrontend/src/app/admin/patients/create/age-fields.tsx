@@ -87,7 +87,9 @@ export function AgeFields({ initialDateOfBirth = "", initialAge }: Readonly<AgeF
   return (
     <>
       <label>
-        <span className="mb-2 block text-sm font-semibold">Date of birth</span>
+        <span className="mb-2 block text-sm font-semibold text-slate-700">
+          Date of birth <span className="text-red-500">*</span>
+        </span>
         <div className="relative">
           <input
             type="text"
@@ -105,7 +107,10 @@ export function AgeFields({ initialDateOfBirth = "", initialAge }: Readonly<AgeF
       <div className="col-span-full grid grid-cols-3 gap-3">
         {(["years", "months", "days"] as const).map((name) => (
           <label key={name}>
-            <span className="mb-2 block text-sm font-semibold">Age {name}</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Age {name}
+              {name === "years" && <span className="text-red-500"> *</span>}
+            </span>
             <input
               name={name === "years" ? "year" : name === "months" ? "month" : "days"}
               type="number"

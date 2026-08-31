@@ -55,7 +55,9 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
       <form action={createPatient} className="rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.14)] sm:p-8">
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           <label>
-            <span className="mb-2 block text-sm font-semibold">Prefix</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Prefix <span className="text-red-500">*</span>
+            </span>
             <select name="prefix" defaultValue="Mr." required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
               <option>Mr.</option>
               <option>Ms.</option>
@@ -65,7 +67,10 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
           </label>
           {fields.map(([name, label, type]) => (
             <label key={name}>
-              <span className="mb-2 block text-sm font-semibold">{label}</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                {label}
+                {(name === "firstName" || name === "mobileNumber") && <span className="text-red-500"> *</span>}
+              </span>
               <input
                 name={name}
                 type={type}
@@ -75,7 +80,9 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
             </label>
           ))}
           <label>
-            <span className="mb-2 block text-sm font-semibold">Gender</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Gender <span className="text-red-500">*</span>
+            </span>
             <select name="gender" required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
               <option value="">Select gender</option>
               <option>Male</option>
@@ -95,11 +102,15 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
             <input name="adharNumber" type="number" className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </label>
           <label>
-            <span className="mb-2 block text-sm font-semibold">Lab name</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Lab name <span className="text-red-500">*</span>
+            </span>
             <input name="labName" defaultValue={user.labName} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </label>
           <label>
-            <span className="mb-2 block text-sm font-semibold">Lab ID</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Lab ID <span className="text-red-500">*</span>
+            </span>
             <input name="labId" type="number" defaultValue={String(user.labId)} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </label>
         </div>

@@ -24,7 +24,7 @@ export default async function SuperAdminLayout(
               width={130}
               height={30}
               priority
-              className="h-auto"
+              className="w-[130px] object-contain"
             />
           </div>
 

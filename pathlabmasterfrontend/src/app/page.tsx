@@ -29,7 +29,7 @@ export default async function Home(props: PageProps<"/">) {
                 width={132}
                 height={30}
                 priority
-                className="h-auto"
+                className="w-[132px] object-contain"
               />
             </div>
             <h1 className="font-serif text-[1.9rem] leading-tight text-slate-950 sm:text-[2.2rem]">

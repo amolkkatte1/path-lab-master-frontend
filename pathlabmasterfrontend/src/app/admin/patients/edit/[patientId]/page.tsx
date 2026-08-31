@@ -78,7 +78,10 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {(["firstName", "middleName", "lastName", "mobileNumber", "mailId"] as const).map((name) => (
             <label key={name}>
-              <span className="mb-2 block text-sm font-semibold">{name === "mailId" ? "Email address" : name === "mobileNumber" ? "Mobile number" : name.replace(/([A-Z])/g, " $1")}</span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">
+                {name === "mailId" ? "Email address" : name === "mobileNumber" ? "Mobile number" : name.replace(/([A-Z])/g, " $1")}
+                {(name === "firstName" || name === "mobileNumber") && <span className="text-red-500"> *</span>}
+              </span>
               <input
                 name={name}
                 type={name === "mailId" ? "email" : name === "mobileNumber" ? "tel" : "text"}
@@ -89,17 +92,21 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
             </label>
           ))}
           <label>
-            <span className="mb-2 block text-sm font-semibold">Prefix</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Prefix <span className="text-red-500">*</span>
+            </span>
             <select name="prefix" defaultValue={patient.prefix ?? "Mr."} required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"><option>Mr.</option><option>Ms.</option><option>Mrs.</option><option>Dr.</option></select>
           </label>
           <label>
-            <span className="mb-2 block text-sm font-semibold">Gender</span>
+            <span className="mb-2 block text-sm font-semibold text-slate-700">
+              Gender <span className="text-red-500">*</span>
+            </span>
             <select name="gender" defaultValue={patient.gender ?? ""} required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"><option value="">Select gender</option><option>Male</option><option>Female</option><option>Other</option></select>
           </label>
           <AgeFields initialDateOfBirth={dateInputValue(patient.dateOfBirth ?? "")} initialAge={{ years: Number(patient.year ?? 0), months: Number(patient.month ?? 0), days: Number(patient.days ?? 0) }} />
           <label><span className="mb-2 block text-sm font-semibold">Aadhaar number</span><input name="adharNumber" type="number" defaultValue={String(patient.adharNumber ?? "")} className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
-          <label><span className="mb-2 block text-sm font-semibold">Lab name</span><input name="labName" type="text" defaultValue={patient.labName ?? ""} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
-          <label><span className="mb-2 block text-sm font-semibold">Lab ID</span><input name="labId" type="number" defaultValue={String(patient.labId ?? "")} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
+          <label><span className="mb-2 block text-sm font-semibold text-slate-700">Lab name <span className="text-red-500">*</span></span><input name="labName" type="text" defaultValue={patient.labName ?? ""} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
+          <label><span className="mb-2 block text-sm font-semibold text-slate-700">Lab ID <span className="text-red-500">*</span></span><input name="labId" type="number" defaultValue={String(patient.labId ?? "")} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
         </div>
         <div className="mt-7 flex flex-wrap gap-3"><button type="submit" className="create-action-button rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">Update patient</button><Link href="/admin/patients" className="create-action-button rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">Cancel</Link></div>
       </form>

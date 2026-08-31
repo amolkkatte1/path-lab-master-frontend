@@ -23,7 +23,7 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
             width={130}
             height={30}
             priority
-            className="h-auto"
+            className="w-[130px] object-contain"
           />
           <div className="mt-8">
             <AdminSidebarNav />

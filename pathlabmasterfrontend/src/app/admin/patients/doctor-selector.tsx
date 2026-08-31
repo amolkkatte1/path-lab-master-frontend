@@ -45,6 +45,24 @@ export function DoctorSelector({
     setDoctorList(initialDoctors);
   }, [initialDoctors]);
 
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target as Node | null;
+      const root = document.querySelector("[data-doctor-selector-root]");
+
+      if (!root || !target || root.contains(target)) {
+        return;
+      }
+
+      setIsDropdownOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isDropdownOpen]);
+
   const filteredDoctors = useMemo(() => {
     const normalized = query.trim().toLowerCase();
 
@@ -149,7 +167,7 @@ export function DoctorSelector({
   }
 
   return (
-    <div className="sm:col-span-2">
+    <div className="sm:col-span-2" data-doctor-selector-root>
       <label className="block">
         <span className="mb-2 block text-sm font-semibold text-slate-700">Ref. doctor</span>
         <div className="relative">
@@ -175,7 +193,7 @@ export function DoctorSelector({
             </button>
           </div>
 
-          {isDropdownOpen && query && filteredDoctors.length > 0 && (
+          {isDropdownOpen && filteredDoctors.length > 0 && (
             <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg">
               {filteredDoctors.slice(0, 8).map((doctor) => (
                 <button
@@ -193,6 +211,12 @@ export function DoctorSelector({
                   <span className="text-xs text-slate-500">ID: {doctor.doctorId}</span>
                 </button>
               ))}
+            </div>
+          )}
+
+          {isDropdownOpen && filteredDoctors.length === 0 && (
+            <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+              No doctors found for this lab.
             </div>
           )}
         </div>
