@@ -108,10 +108,10 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                 ["gender", "Gender"],
                 ["dateOfBirth", "Date of birth"],
                 ["doctor", "Doctor"],
-                ["lab", "Laboratory"],
+                // ["lab", "Laboratory"],
               ] as const).map(([key, label]) => (
                 <th key={key} className="px-5 py-3 font-semibold">
-                  <button type="button" onClick={() => toggleSort(key)} className="flex items-center gap-2 text-left transition hover:text-white">
+                  <button type="button" onClick={() => toggleSort(key)} className="table-sort-button flex items-center gap-2 text-left transition">
                     {label}
                     {sortIndicator(sortKey, sortDirection, key)}
                   </button>
@@ -134,7 +134,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                   <p className="font-medium text-white">{patient.doctorName ?? "-"}</p>
                   <p className="mt-1 text-xs text-slate-500">ID: {patient.doctorId ?? "-"}</p>
                 </td>
-                <td className="px-5 py-4 text-slate-300">{patient.labName ?? "-"}</td>
+                {/* <td className="px-5 py-4 text-slate-300">{patient.labName ?? "-"}</td> */}
               </tr>
             ))}
           </tbody>

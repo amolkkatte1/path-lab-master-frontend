@@ -91,10 +91,10 @@ export function DoctorsTable({ doctors }: Readonly<DoctorsTableProps>) {
                 ["contact", "Contact"],
                 ["qualification", "Qualification"],
                 ["sharing", "Sharing %"],
-                ["lab", "Laboratory"],
+                // ["lab", "Laboratory"],
               ] as const).map(([key, label]) => (
                 <th key={key} className="px-5 py-3 font-semibold">
-                  <button type="button" onClick={() => toggleSort(key)} className="flex items-center gap-2 text-left transition hover:text-white">{label}{sortIndicator(sortKey, sortDirection, key)}</button>
+                  <button type="button" onClick={() => toggleSort(key)} className="table-sort-button flex items-center gap-2 text-left transition">{label}{sortIndicator(sortKey, sortDirection, key)}</button>
                   <label className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 normal-case tracking-normal">
                     <FiSearch className="h-3.5 w-3.5 shrink-0" />
                     <input value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label}`} className="min-w-0 w-full bg-transparent text-xs font-normal text-slate-200 outline-none placeholder:text-slate-500" />
@@ -111,7 +111,7 @@ export function DoctorsTable({ doctors }: Readonly<DoctorsTableProps>) {
                 <td className="px-5 py-4"><p className="flex items-center gap-2 text-slate-300"><FiPhone className="text-emerald-300" />{doctor.doctorMobileNumber ?? "-"}</p><p className="mt-1 flex items-center gap-2 text-xs text-slate-500"><FiMail />{doctor.doctorMailId ?? "-"}</p></td>
                 <td className="px-5 py-4 text-slate-300">{doctor.educationQulification ?? "-"}</td>
                 <td className="px-5 py-4 text-slate-300">{doctor.shairingPercentage ?? "-"}%</td>
-                <td className="px-5 py-4 text-slate-300">{doctor.labName ?? "-"}</td>
+                {/* <td className="px-5 py-4 text-slate-300">{doctor.labName ?? "-"}</td> */}
                 <td className="px-5 py-4"><DeleteDoctorButton doctorId={doctor.doctorId} /></td>
               </tr>
             ))}

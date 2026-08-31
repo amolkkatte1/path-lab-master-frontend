@@ -67,7 +67,7 @@ export default async function CreateDoctorPage({
               />
             </label>
           ))}
-          <label>
+          <label hidden>
             <span className="mb-2 block text-sm font-semibold text-slate-700">
               Lab name <span className="text-red-500">*</span>
             </span>
@@ -78,7 +78,7 @@ export default async function CreateDoctorPage({
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
             />
           </label>
-          <label>
+          <label hidden>
             <span className="mb-2 block text-sm font-semibold text-slate-700">
               Lab ID <span className="text-red-500">*</span>
             </span>

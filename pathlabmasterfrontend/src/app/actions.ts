@@ -100,11 +100,13 @@ export async function createPatient(formData: FormData) {
   const doctorIdValue = value("doctorId");
   const doctorNameValue = value("doctorName");
 
+  const mobileNumberValue = value("mobileNumber");
+
   const payload = {
     firstName: value("firstName"),
     middleName: value("middleName"),
     lastName: value("lastName"),
-    mobileNumber: Number(value("mobileNumber")),
+    mobileNumber: mobileNumberValue ? Number(mobileNumberValue) : undefined,
     prefix: value("prefix"),
     mailId: value("mailId"),
     gender: value("gender"),
@@ -353,25 +355,31 @@ export async function updatePatient(formData: FormData) {
     /^(\d{4})-(\d{2})-(\d{2})$/,
     "$3/$2/$1",
   );
+  const mobileNumberValue = value("mobileNumber");
+  const doctorIdValue = value("doctorId");
+  const doctorNameValue = value("doctorName");
+  const adharNumberValue = value("adharNumber");
 
   const payload = {
-    patientId: Number(value("patientId")),
+    patientId: String(value("patientId")),
     firstName: value("firstName"),
     middleName: value("middleName"),
     lastName: value("lastName"),
-    mobileNumber: Number(value("mobileNumber")),
+    mobileNumber: mobileNumberValue ? Number(mobileNumberValue) : undefined,
     prefix: value("prefix"),
     mailId: value("mailId"),
     gender: value("gender"),
     dateOfBirth,
-    year: Number(value("year")),
-    month: Number(value("month")),
-    days: Number(value("days")),
-    adharNumber: Number(value("adharNumber")),
+    doctorId: doctorIdValue ? String(doctorIdValue) : undefined,
+    doctorName: doctorNameValue || undefined,
+    year: Number(value("year")) || 0,
+    month: Number(value("month")) || 0,
+    days: Number(value("days")) || 0,
+    adharNumber: adharNumberValue ? Number(adharNumberValue) : undefined,
     labName: value("labName"),
-    labId: Number(value("labId")),
-    createdBy: Number(value("createdBy")),
-    updatedBy: currentUser.userId,
+    labId: String(value("labId")),
+    createdBy: String(value("createdBy")),
+    updatedBy: String(currentUser.userId),
     createdAt: value("createdAt"),
     updatedAt: now,
   };

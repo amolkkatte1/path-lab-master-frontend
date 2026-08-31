@@ -111,6 +111,14 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.theme-light .workspace-shell .table-sort-button:hover {
+  color: #020617;
+}
+
+.theme-dark .workspace-shell .table-sort-button:hover {
+  color: #ffffff;
+}
+
 .theme-light .workspace-shell .bg-emerald-500.text-white,
 .theme-light .workspace-shell .bg-sky-500.text-white {
   color: #ffffff;
