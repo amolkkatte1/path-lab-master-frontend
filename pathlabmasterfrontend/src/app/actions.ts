@@ -142,10 +142,21 @@ export async function createPatient(formData: FormData) {
     redirect(`/admin/patients/create?error=${response.status}`);
   }
 
+  const patientResponse = await parseApiResponse<{
+    patientId?: number | string;
+    data?: { patientId?: number | string };
+  }>(response);
+  const createdPatientId = patientResponse.patientId ?? patientResponse.data?.patientId;
+
+  if (!createdPatientId) {
+    redirect("/admin/patients/create?error=missing-patient-id");
+  }
+
   const patientName = [payload.firstName, payload.middleName, payload.lastName]
     .filter(Boolean)
     .join(" ");
   const successParams = new URLSearchParams({
+    patientId: String(createdPatientId),
     patientName,
     mobileNumber: String(payload.mobileNumber ?? ""),
   });

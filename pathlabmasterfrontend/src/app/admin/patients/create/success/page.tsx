@@ -4,7 +4,8 @@ import { FiCheckCircle, FiClipboard, FiUsers } from "react-icons/fi";
 import { requireUserType } from "@/lib/auth";
 
 type PatientSuccessPageProps = {
-  searchParams: Promise<{
+  readonly searchParams: Promise<{
+    patientId?: string;
     patientName?: string;
     mobileNumber?: string;
   }>;
@@ -15,8 +16,12 @@ export default async function PatientSuccessPage({
 }: PatientSuccessPageProps) {
   await requireUserType("Administrator");
 
-  const { patientName, mobileNumber } = await searchParams;
+  const { patientId, patientName, mobileNumber } = await searchParams;
   const testRegistrationParams = new URLSearchParams();
+
+  if (patientId) {
+    testRegistrationParams.set("patientId", patientId);
+  }
 
   if (patientName) {
     testRegistrationParams.set("patientName", patientName);
