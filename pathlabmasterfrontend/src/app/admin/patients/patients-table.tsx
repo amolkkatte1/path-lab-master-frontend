@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useState } from "react";
 import Link from "next/link";
-import { FiChevronDown, FiChevronUp, FiMail, FiPhone, FiSearch } from "react-icons/fi";
+import { FiChevronDown, FiChevronUp, FiClipboard, FiMail, FiPhone, FiSearch } from "react-icons/fi";
 
 export type Patient = {
   patientId: number | string;
@@ -40,6 +40,19 @@ function patientName(patient: Patient) {
   return [patient.prefix, patient.firstName, patient.middleName, patient.lastName]
     .filter(Boolean)
     .join(" ");
+}
+
+function testRegistrationHref(patient: Patient) {
+  const params = new URLSearchParams({
+    patientId: String(patient.patientId),
+    patientName: patientName(patient),
+  });
+
+  if (patient.mobileNumber) {
+    params.set("mobileNumber", String(patient.mobileNumber));
+  }
+
+  return `/admin/tests?${params.toString()}`;
 }
 
 function cellValue(patient: Patient, key: SortKey) {
@@ -99,7 +112,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
         </div>
       </div>
       <div className="max-w-full overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <table className="w-full min-w-[1080px] text-left text-sm">
           <thead className="bg-transparent-950/30 text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
               {([
@@ -121,6 +134,7 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                   </label>
                 </th>
               ))}
+              <th className="px-5 py-3 font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/8">
@@ -135,6 +149,15 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                   <p className="mt-1 text-xs text-slate-500">ID: {patient.doctorId ?? "-"}</p>
                 </td>
                 {/* <td className="px-5 py-4 text-slate-300">{patient.labName ?? "-"}</td> */}
+                <td className="px-5 py-4">
+                  <Link
+                    href={testRegistrationHref(patient)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-emerald-300/20 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-400/20"
+                  >
+                    <FiClipboard className="h-3.5 w-3.5" />
+                    Register test
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>

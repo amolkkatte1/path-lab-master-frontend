@@ -142,7 +142,15 @@ export async function createPatient(formData: FormData) {
     redirect(`/admin/patients/create?error=${response.status}`);
   }
 
-  redirect("/admin/patients?created=1");
+  const patientName = [payload.firstName, payload.middleName, payload.lastName]
+    .filter(Boolean)
+    .join(" ");
+  const successParams = new URLSearchParams({
+    patientName,
+    mobileNumber: String(payload.mobileNumber ?? ""),
+  });
+
+  redirect(`/admin/patients/create/success?${successParams.toString()}`);
 }
 
 export async function createDoctor(formData: FormData) {
@@ -477,4 +485,50 @@ export async function deleteUser(formData: FormData) {
   }
 
   redirect("/super-admin/users?deleted=1");
+}
+
+type RegisterReportInput = {
+  patientId: string;
+  testList: Array<Record<string, unknown>>;
+};
+
+export type RegisterReportResponse = {
+  data?: {
+    reportId?: number | string;
+    pendingTest?: Record<string, Array<{
+      parameterName: string;
+      value: string;
+      sequence: number;
+      dataType: string;
+      unit: string;
+      formula: string;
+      upperRange: number | null;
+      lowerRange: number | null;
+      isBold: boolean;
+    }>>;
+  };
+};
+
+export async function registerReport({ patientId, testList }: RegisterReportInput) {
+  const currentUser = await requireUserType("Administrator");
+
+  try {
+    const response = await fetch(API_ENDPOINTS.registerReport, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(
+        { patientId, labId: currentUser.labId, userId: currentUser.userId, testList },
+        ["patientId", "labId", "userId", "testId", "serviceId", "serviceGroupId", "createdBy", "updatedBy"],
+      ),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, error: `The report service returned ${response.status}.` };
+    }
+
+    return { ok: true as const, payload: await parseApiResponse<RegisterReportResponse>(response) };
+  } catch {
+    return { ok: false as const, error: "Unable to connect to the report service." };
+  }
 }

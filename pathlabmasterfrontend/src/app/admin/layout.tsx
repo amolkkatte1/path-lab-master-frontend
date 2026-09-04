@@ -48,9 +48,14 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
             <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300 transition group-hover:text-emerald-200">
               Admin workspace
             </p>
-            <p className="mt-1 truncate text-base font-semibold text-white transition group-hover:text-emerald-100 sm:text-lg">
-              {user.labName}
-            </p>
+            <div className="row flex min-w-0 items-center gap-1">
+              <p className="truncate text-base font-semibold text-white transition group-hover:text-emerald-100 sm:text-lg">
+                {user.labName}
+              </p>
+              {/* <p className="truncate text-base text-white transition group-hover:text-emerald-100 sm:text-sm">
+                / id: {user.labId}
+              </p> */}
+            </div>
           </Link>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <Link
@@ -87,7 +92,7 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
               </span>
             </button>
             <div className="hidden lg:block">
-              <TopbarClock/>
+              <TopbarClock />
             </div>
             <div className="hidden rounded-xl border border-white/10 bg-white/8 px-3 py-2 text-right lg:block">
               <p className="text-xs font-semibold text-white">

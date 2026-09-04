@@ -119,6 +119,132 @@ body {
   color: #ffffff;
 }
 
+.test-request-table-frame {
+  border-color: rgba(148, 163, 184, 0.34);
+}
+
+.test-request-table-head {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.test-request-table-head th:first-child {
+  border-top-left-radius: 0.75rem;
+}
+
+.test-request-table-head th:last-child {
+  border-top-right-radius: 0.75rem;
+}
+
+.test-request-table-row {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.theme-light .workspace-shell .test-request-table-frame {
+  border-color: #cbd5e1;
+}
+
+.theme-light .workspace-shell .test-request-table-head {
+  background: #e2e8f0;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .test-request-table-row {
+  border-color: #d7e1e5;
+}
+
+.test-autocomplete-menu {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.test-autocomplete-option {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.test-autocomplete-option:hover {
+  background: rgba(52, 211, 153, 0.15);
+}
+
+.theme-light .workspace-shell .test-autocomplete-menu {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .test-autocomplete-option {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .test-autocomplete-option:hover {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+@media (max-width: 639px) {
+  .test-request-table,
+  .test-request-table tbody,
+  .test-request-table tr,
+  .test-request-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .test-request-table thead {
+    display: none;
+  }
+
+  .test-request-table tr {
+    position: relative;
+    padding: 0.75rem 0.75rem 0.75rem 3.25rem;
+  }
+
+  .test-request-table td {
+    min-height: 2.75rem;
+    padding: 0.5rem 0;
+    text-align: left;
+  }
+
+  .test-request-table td[data-label]:not([data-label=""]){
+    display: grid;
+    grid-template-columns: minmax(5rem, 0.45fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: center;
+  }
+
+  .test-request-table td[data-label]:not([data-label=""])::before {
+    content: attr(data-label);
+    color: #94a3b8;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .test-request-table td[data-label="Amount"] {
+    text-align: left;
+  }
+
+  .test-request-table td[data-label="Amount"]::before {
+    text-align: left;
+  }
+
+  .test-request-table td[data-label=""] {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+    padding: 0.5rem 0;
+  }
+
+  .test-request-table td[data-test-autocomplete] {
+    z-index: 1;
+  }
+
+  .test-request-table .test-autocomplete-menu {
+    left: 5.75rem;
+    right: 0;
+    margin-top: 0;
+  }
+}
+
 .theme-light .workspace-shell .bg-emerald-500.text-white,
 .theme-light .workspace-shell .bg-sky-500.text-white {
   color: #ffffff;

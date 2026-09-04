@@ -42,10 +42,6 @@ export function DoctorSelector({
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    setDoctorList(initialDoctors);
-  }, [initialDoctors]);
-
-  useEffect(() => {
     if (!isDropdownOpen) return;
 
     function handlePointerDown(event: MouseEvent) {

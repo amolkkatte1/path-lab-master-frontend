@@ -11,6 +11,8 @@ export const API_ENDPOINTS = {
   createPatient: `${API_BASE_URL}/patient/create`,
   getPatient: `${API_BASE_URL}/patient/get`,
   updatePatient: `${API_BASE_URL}/patient/update`,
+  testList: `${API_BASE_URL}/test/list`,
+  registerReport: `${API_BASE_URL}/report/register`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,
   getDoctor: `${API_BASE_URL}/doctor/get`,
