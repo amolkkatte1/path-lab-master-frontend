@@ -111,6 +111,62 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.dashboard-queue-shell {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dashboard-queue-table-head {
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.dashboard-queue-row {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.dashboard-queue-table-scroll {
+  scrollbar-gutter: stable;
+}
+
+.dashboard-queue-table-scroll::-webkit-scrollbar {
+  height: 0.7rem;
+}
+
+.dashboard-queue-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-queue-table-scroll::-webkit-scrollbar-thumb {
+  border: 0.2rem solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: rgba(148, 163, 184, 0.5);
+}
+
+.theme-light .workspace-shell .dashboard-queue-table-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.45);
+}
+
+.theme-light .workspace-shell .dashboard-queue-shell {
+  border-color: #d7e1e5;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.theme-light .workspace-shell .dashboard-queue-table-head {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.theme-light .workspace-shell .dashboard-queue-row {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .dashboard-queue-row:hover {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
 .theme-light .workspace-shell .table-sort-button:hover {
   color: #020617;
 }

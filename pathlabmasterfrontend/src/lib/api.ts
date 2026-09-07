@@ -24,6 +24,17 @@ export function getPatientListByLabId(labId: number | string) {
   return `${API_BASE_URL}/patient/list/labId/${labId}`;
 }
 
+export function getPendingPatientsByLabId(labId: number | string) {
+  return `${API_BASE_URL}/report/pending-patient/labId/${labId}`;
+}
+
+export function getPendingReportsByPatientId(
+  patientId: number | string,
+  labId: number | string,
+) {
+  return `${API_BASE_URL}/report/pending-reports/patientId/${patientId}/labId/${labId}`;
+}
+
 export function getDoctorListByLabId(labId: number | string) {
   return `${API_BASE_URL}/doctor/list/labId/${labId}`;
 }

@@ -1,49 +1,45 @@
+import { getPendingPatientsByLabId, parseApiResponse } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
+import {
+  PendingPatientQueue,
+  type PendingPatient,
+} from "./pending-patient-queue";
 import Link from "next/link";
 import {
   FiActivity,
   FiAlertCircle,
   FiArrowUpRight,
   FiClipboard,
-  FiChevronRight,
   FiClock,
   FiFileText,
   FiPlus,
-  FiSearch,
   FiUserPlus,
 } from "react-icons/fi";
 import { TbCurrencyRupee } from "react-icons/tb";
 
-const patients = [
-  {
-    name: "Aarav Mehta",
-    id: "PL-20481",
-    test: "CBC + Lipid Profile",
-    time: "09:42 AM",
-    status: "Ready",
-  },
-  {
-    name: "Nisha Kulkarni",
-    id: "PL-20479",
-    test: "Thyroid Panel",
-    time: "09:28 AM",
-    status: "Processing",
-  },
-  {
-    name: "Rohan Shah",
-    id: "PL-20476",
-    test: "Liver Function Test",
-    time: "09:11 AM",
-    status: "Awaiting sample",
-  },
-  {
-    name: "Meera Iyer",
-    id: "PL-20472",
-    test: "HbA1c",
-    time: "08:54 AM",
-    status: "Ready",
-  },
-];
+type PendingPatientsResponse = {
+  data?: PendingPatient[];
+};
+
+async function getPendingPatients(labId: number) {
+  try {
+    const response = await fetch(getPendingPatientsByLabId(labId), {
+      cache: "no-store",
+    });
+    if (!response.ok)
+      return {
+        patients: [],
+        error: `The pending queue returned ${response.status}.`,
+      };
+    const payload = await parseApiResponse<PendingPatientsResponse>(response);
+    return { patients: payload.data ?? [], error: null };
+  } catch {
+    return {
+      patients: [],
+      error: "Unable to load today&apos;s pending patient queue.",
+    };
+  }
+}
 
 const adminHighlights: Array<{
   label: string;
@@ -89,14 +85,9 @@ const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
   { icon: FiFileText, label: "Review Reports" },
 ];
 
-function statusClasses(status: string) {
-  if (status === "Ready") return "bg-emerald-400/15 text-emerald-300";
-  if (status === "Processing") return "bg-sky-400/15 text-sky-300";
-  return "bg-amber-400/15 text-amber-300";
-}
-
 export default async function AdminDashboard() {
   const user = await requireUserType("Administrator");
+  const { patients, error: queueError } = await getPendingPatients(user.labId);
 
   return (
     <section className="mx-auto max-w-[1500px] space-y-5">
@@ -138,80 +129,20 @@ export default async function AdminDashboard() {
         ))}
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
-        <article className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45">
-          <div className="flex flex-col gap-3 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-white">
-                Today&apos;s patient queue
-              </h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Samples received at the collection desk
-              </p>
-            </div>
-            <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-400">
-              <FiSearch />
-              <input
-                className="w-full bg-transparent outline-none placeholder:text-slate-500 sm:w-44"
-                placeholder="Search patients"
-                aria-label="Search patients"
-              />
-            </label>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-sm">
-              <thead className="bg-white/5 text-xs uppercase tracking-[0.14em] text-slate-500">
-                <tr>
-                  <th className="px-5 py-3 font-medium">Patient</th>
-                  <th className="px-5 py-3 font-medium">Requested tests</th>
-                  <th className="px-5 py-3 font-medium">Received</th>
-                  <th className="px-5 py-3 font-medium">Status</th>
-                  <th className="px-5 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/8">
-                {patients.map((patient) => (
-                  <tr key={patient.id} className="transition hover:bg-white/5">
-                    <td className="px-5 py-4">
-                      <p className="font-semibold text-white">{patient.name}</p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {patient.id}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4 text-slate-300">{patient.test}</td>
-                    <td className="px-5 py-4 text-slate-400">{patient.time}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses(patient.status)}`}
-                      >
-                        {patient.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        aria-label={`Open ${patient.name}`}
-                        className="text-slate-400 transition hover:text-white"
-                      >
-                        <FiChevronRight />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="border-t border-white/10 p-4 text-right">
+      <article className="dashboard-queue-shell min-w-0 overflow-hidden rounded-2xl border bg-slate-950/45">
+        {/* <div className="flex flex-col gap-3 border-b border-white/10 sm:flex-row sm:items-center sm:justify-between"></div> */}
+        <PendingPatientQueue patients={patients} error={queueError} />
+        {/* <div className="border-t border-white/10 p-4 text-right">
             <button
               type="button"
               className="inline-flex items-center gap-1 text-sm font-semibold text-emerald-300 hover:text-emerald-200"
-            >
+              >
               View all patients <FiArrowUpRight />
-            </button>
-          </div>
-        </article>
-
-        <aside className="space-y-5">
+              </button>
+          </div> */}
+      </article>
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(280px,0.75fr)]">
+        {/* <aside className="space-x-5"> */}
           <article className="rounded-2xl border border-white/10 bg-white/8 p-4">
             <div className="flex items-center justify-between">
               <h2 className="text-base font-semibold text-white">
@@ -248,7 +179,7 @@ export default async function AdminDashboard() {
               Review alerts <FiArrowUpRight className="ml-1 inline" />
             </button>
           </article>
-        </aside>
+        {/* </aside> */}
       </section>
     </section>
   );
