@@ -122,6 +122,215 @@ export async function createUserType(formData: FormData) {
   redirect("/super-admin/roles?created=1");
 }
 
+function parseIdList(value: string) {
+  const raw = value.trim();
+
+  if (!raw) {
+    return [];
+  }
+
+  const normalized = raw.startsWith("[") ? raw : raw.split(",").join(",");
+
+  try {
+    const parsed = JSON.parse(normalized);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .map((entry) => (/^-?\d+$/.test(entry) ? Number(entry) : entry));
+    }
+  } catch {
+    // Fall through to comma-separated parsing below.
+  }
+
+  return raw
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => (/^-?\d+$/.test(entry) ? Number(entry) : entry));
+}
+
+export async function createTest(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const serviceId = Number(value("serviceId"));
+  const serviceGroupId = Number(value("serviceGroupId"));
+  const labId = Number(value("labId"));
+  const testCharges = Number(value("testCharges"));
+  const parameterList = parseIdList(value("parameterList"));
+  const parameterGroupList = parseIdList(value("parameterGroupList"));
+
+  const testName = value("testName");
+  const serviceName = value("serviceName");
+  const labName = value("labName") || currentUser.labName;
+
+  if (!testName || !serviceName || !Number.isFinite(serviceId) || serviceId <= 0) {
+    redirect("/super-admin/tests/create?error=validation");
+  }
+
+  if (!Number.isFinite(serviceGroupId) || serviceGroupId <= 0) {
+    redirect("/super-admin/tests/create?error=validation");
+  }
+
+  if (!Number.isFinite(labId) || labId <= 0) {
+    redirect("/super-admin/tests/create?error=validation");
+  }
+
+  if (!Number.isFinite(testCharges)) {
+    redirect("/super-admin/tests/create?error=validation");
+  }
+
+  const payload = {
+    testName,
+    parameterGroupList,
+    parameterList,
+    serviceId,
+    serviceName,
+    serviceShortName: value("serviceShortName") || serviceName,
+    serviceGroupId,
+    serviceGroupName: value("serviceGroupName") || "general",
+    labName,
+    labId,
+    testCharges,
+    createdBy: Number(currentUser.userId),
+    updatedBy: Number(currentUser.userId),
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.createTest, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, [
+        "serviceId",
+        "serviceGroupId",
+        "labId",
+        "testCharges",
+        "createdBy",
+        "updatedBy",
+      ]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/tests/create?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/tests/create?error=${response.status}`);
+  }
+
+  redirect("/super-admin/tests?created=1");
+}
+
+export async function updateTest(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const testId = String(value("testId"));
+  const serviceId = Number(value("serviceId"));
+  const serviceGroupId = Number(value("serviceGroupId"));
+  const labId = Number(value("labId"));
+  const testCharges = Number(value("testCharges"));
+  const parameterList = parseIdList(value("parameterList"));
+  const parameterGroupList = parseIdList(value("parameterGroupList"));
+
+  const testName = value("testName");
+  const serviceName = value("serviceName");
+  const labName = value("labName") || currentUser.labName;
+
+  if (!testId || !testName || !serviceName || !Number.isFinite(serviceId) || serviceId <= 0) {
+    redirect(`/super-admin/tests/edit/${testId || ""}?error=validation`);
+  }
+
+  if (!Number.isFinite(serviceGroupId) || serviceGroupId <= 0) {
+    redirect(`/super-admin/tests/edit/${testId}?error=validation`);
+  }
+
+  if (!Number.isFinite(labId) || labId <= 0) {
+    redirect(`/super-admin/tests/edit/${testId}?error=validation`);
+  }
+
+  if (!Number.isFinite(testCharges)) {
+    redirect(`/super-admin/tests/edit/${testId}?error=validation`);
+  }
+
+  const payload = {
+    testId,
+    testName,
+    parameterGroupList,
+    parameterList,
+    serviceId,
+    serviceName,
+    serviceShortName: value("serviceShortName") || serviceName,
+    serviceGroupId,
+    serviceGroupName: value("serviceGroupName") || "general",
+    labName,
+    labId,
+    testCharges,
+    createdBy: String(value("createdBy") || currentUser.userId),
+    updatedBy: String(currentUser.userId),
+    createdAt: value("createdAt") || now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.updateTest, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, [
+        "testId",
+        "serviceId",
+        "serviceGroupId",
+        "labId",
+        "testCharges",
+        "createdBy",
+        "updatedBy",
+      ]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect(`/super-admin/tests/edit/${payload.testId}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/tests/edit/${payload.testId}?error=${response.status}`);
+  }
+
+  redirect("/super-admin/tests?updated=1");
+}
+
+export async function deleteTest(formData: FormData) {
+  await requireUserType("SuperAdmin");
+  const testId = String(formData.get("testId") ?? "").trim();
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.deleteTest, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ testId }, ["testId"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/tests?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/tests?error=${response.status}`);
+  }
+
+  redirect("/super-admin/tests?deleted=1");
+}
+
 export async function updateUserType(formData: FormData) {
   const currentUser = await requireUserType("SuperAdmin");
   const value = (name: string) => String(formData.get(name) ?? "").trim();

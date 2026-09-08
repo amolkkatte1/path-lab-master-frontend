@@ -10,6 +10,7 @@ import {
   FiHome,
   FiSettings,
   FiShield,
+  FiActivity,
   FiUsers,
 } from "react-icons/fi";
 
@@ -49,6 +50,12 @@ const primaryItems: NavItem[] = [
     href: "/super-admin/parameter",
     label: "Test Parameters",
     icon: FiClipboard,
+    match: "prefix",
+  },
+  {
+    href: "/super-admin/tests",
+    label: "Tests",
+    icon: FiActivity,
     match: "prefix",
   }
 ];
