@@ -89,6 +89,97 @@ export async function createUser(formData: FormData) {
   redirect("/super-admin/users?created=1");
 }
 
+export async function createUserType(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    userTypeName: value("userTypeName"),
+    createdBy: currentUser.userId,
+    updatedBy: currentUser.userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.createUserType, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/roles/create?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/roles/create?error=${response.status}`);
+  }
+
+  redirect("/super-admin/roles?created=1");
+}
+
+export async function updateUserType(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    userTypeId: String(value("userTypeId")),
+    userTypeName: value("userTypeName"),
+    createdBy: String(value("createdBy") || currentUser.userId),
+    updatedBy: String(currentUser.userId),
+    createdAt: value("createdAt") || now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.updateUserType, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["userTypeId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect(`/super-admin/roles/edit/${payload.userTypeId}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/roles/edit/${payload.userTypeId}?error=${response.status}`);
+  }
+
+  redirect("/super-admin/roles?updated=1");
+}
+
+export async function deleteUserType(formData: FormData) {
+  await requireUserType("SuperAdmin");
+  const userTypeId = String(formData.get("userTypeId") ?? "").trim();
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.deleteUserType, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ userTypeId }, ["userTypeId"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/roles?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/roles?error=${response.status}`);
+  }
+
+  redirect("/super-admin/roles?deleted=1");
+}
+
 export async function createLab(formData: FormData) {
   const currentUser = await requireUserType("SuperAdmin");
   const value = (name: string) => String(formData.get(name) ?? "").trim();

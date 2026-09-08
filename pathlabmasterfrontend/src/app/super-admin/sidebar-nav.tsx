@@ -34,6 +34,12 @@ const primaryItems: NavItem[] = [
     match: "prefix",
   },
   {
+    href: "/super-admin/roles",
+    label: "Roles",
+    icon: FiShield,
+    match: "prefix",
+  },
+  {
     href: "/super-admin/labs",
     label: "Labs",
     icon: FiBriefcase,
