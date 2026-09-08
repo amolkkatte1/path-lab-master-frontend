@@ -58,9 +58,9 @@ export default async function EditDoctorPage({ params, searchParams }: EditDocto
 
   return (
     <section className="mx-auto max-w-7xl space-y-6">
-      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-4 backdrop-blur sm:px-6">
+      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-3 backdrop-blur sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">Doctor management</p>
-        <h1 className="mt-1 text-xl font-semibold text-white sm:text-2xl">Edit doctor</h1>
+        <h1 className="mt-1 text-xl font-semibold text-white">Edit doctor</h1>
       </header>
 
       {error && <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4 text-sm text-rose-100">{error === "connection" ? "Unable to connect to the doctor service. Please try again." : `The doctor service rejected the request (status ${error}).`}</div>}

@@ -167,6 +167,126 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.pending-test-dialog {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.pending-test-dialog-header {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.pending-test-dialog-close,
+.pending-test-dialog-close-button {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.pending-test-dialog-close:hover,
+.pending-test-dialog-close-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.pending-test-parameter {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.pending-test-parameter-heading {
+  border-color: rgba(52, 211, 153, 0.25);
+  background: rgba(52, 211, 153, 0.1);
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.pending-test-parameter-input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(2, 6, 23, 0.6);
+  color: #ffffff;
+}
+
+.pending-test-parameter-meta {
+  color: #94a3b8;
+}
+
+.pending-test-dialog-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-light .workspace-shell .pending-test-dialog {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-dialog-header {
+  border-color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.theme-light .workspace-shell .pending-test-dialog-close,
+.theme-light .workspace-shell .pending-test-dialog-close-button {
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.theme-light .workspace-shell .pending-test-dialog-close:hover,
+.theme-light .workspace-shell .pending-test-dialog-close-button:hover {
+  background: #f1f5f9;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-parameter {
+  border-color: #d7e1e5;
+  background: #f8fafc;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-parameter-heading {
+  border-color: rgba(5, 150, 105, 0.25);
+  background: rgba(16, 185, 129, 0.1);
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-parameter-input {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-parameter-meta {
+  color: #475569;
+}
+
+.theme-light .workspace-shell .pending-test-dialog-footer {
+  border-color: #e2e8f0;
+}
+
+.pending-tests-table-head {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.pending-tests-table-row {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.theme-light .workspace-shell .pending-tests-table-head {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.theme-light .workspace-shell .pending-tests-table-row {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .pending-tests-table-row:hover {
+  background-color: rgba(16, 185, 129, 0.12);
+}
+
 .theme-light .workspace-shell .table-sort-button:hover {
   color: #020617;
 }

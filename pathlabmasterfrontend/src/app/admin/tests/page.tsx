@@ -50,7 +50,7 @@ export default async function TestRegistrationPage({
 
   return (
     <section className="mx-auto min-w-0 max-w-7xl space-y-6">
-      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-4 backdrop-blur sm:px-6">
+      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-3 backdrop-blur sm:px-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-300">
             <FiClipboard />
@@ -59,7 +59,7 @@ export default async function TestRegistrationPage({
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">
               Test Registration
             </p>
-            <h1 className="mt-1 text-xl font-semibold text-white sm:text-2xl">
+            <h1 className="mt-1 text-xl font-semibold text-white">
               Register patient test
             </h1>
           </div>

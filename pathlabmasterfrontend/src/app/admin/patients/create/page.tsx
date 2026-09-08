@@ -41,9 +41,9 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
 
   return (
     <section className="mx-auto max-w-7xl space-y-6">
-      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-4 backdrop-blur sm:px-6">
+      <header className="rounded-[20px] border border-white/10 bg-white/10 px-5 py-3 backdrop-blur sm:px-6">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-300">Patient management</p>
-        <h1 className="mt-1 text-xl font-semibold text-white sm:text-2xl">Add patient</h1>
+        <h1 className="mt-1 text-xl font-semibold text-white">Add patient</h1>
       </header>
 
       {error && (
