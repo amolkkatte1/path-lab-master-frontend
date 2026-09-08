@@ -23,6 +23,11 @@ export const API_ENDPOINTS = {
   getDoctor: `${API_BASE_URL}/doctor/get`,
   updateDoctor: `${API_BASE_URL}/doctor/update`,
   deleteDoctor: `${API_BASE_URL}/doctor/delete`,
+  parameterList: `${API_BASE_URL}/parameter/list`,
+  createParameter: `${API_BASE_URL}/parameter/create`,
+  getParameter: `${API_BASE_URL}/parameter/get`,
+  updateParameter: `${API_BASE_URL}/parameter/update`,
+  deleteParameter: `${API_BASE_URL}/parameter/delete`,
 } as const;
 
 export function getPatientListByLabId(labId: number | string) {

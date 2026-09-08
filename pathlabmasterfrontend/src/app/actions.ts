@@ -595,6 +595,119 @@ export async function deleteUser(formData: FormData) {
   redirect("/super-admin/users?deleted=1");
 }
 
+export async function createParameter(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    parameterName: value("parameterName"),
+    code: value("code"),
+    value: value("value"),
+    sequence: Number(value("sequence")) || 0,
+    dataType: value("dataType"),
+    unit: value("unit"),
+    criteria: value("criteria"),
+    defaultVlue: value("defaultVlue"),
+    formula: value("formula"),
+    upperRange: value("upperRange") ? Number(value("upperRange")) : null,
+    lowerRange: value("lowerRange") ? Number(value("lowerRange")) : null,
+    extrimUpperRange: value("extrimUpperRange") ? Number(value("extrimUpperRange")) : 0,
+    extrimLowerRange: value("extrimLowerRange") ? Number(value("extrimLowerRange")) : 0,
+    lowerAgeRange: value("lowerAgeRange") ? Number(value("lowerAgeRange")) : 0,
+    upperAgeRange: value("upperAgeRange") ? Number(value("upperAgeRange")) : 0,
+    method: value("method"),
+    context: value("context"),
+    isHideLable: false,
+    isHideLableOnRemport: false,
+    isLocalDictonery: false,
+    isWrapper: false,
+    isCalculative: false,
+    isImageResize: false,
+    isBold: true,
+    createdBy: currentUser.userId,
+    updatedBy: currentUser.userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.createParameter, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/parameter/create?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/parameter/create?error=${response.status}`);
+  }
+
+  redirect("/super-admin/parameter?created=1");
+}
+
+export async function updateParameter(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    parameterId: String(value("parameterId")),
+    parameterName: value("parameterName"),
+    code: value("code"),
+    value: value("value"),
+    sequence: Number(value("sequence")) || 0,
+    dataType: value("dataType"),
+    unit: value("unit"),
+    criteria: value("criteria"),
+    defaultVlue: value("defaultVlue"),
+    formula: value("formula"),
+    upperRange: value("upperRange") ? Number(value("upperRange")) : null,
+    lowerRange: value("lowerRange") ? Number(value("lowerRange")) : null,
+    extrimUpperRange: value("extrimUpperRange") ? Number(value("extrimUpperRange")) : 0,
+    extrimLowerRange: value("extrimLowerRange") ? Number(value("extrimLowerRange")) : 0,
+    lowerAgeRange: value("lowerAgeRange") ? Number(value("lowerAgeRange")) : 0,
+    upperAgeRange: value("upperAgeRange") ? Number(value("upperAgeRange")) : 0,
+    method: value("method"),
+    context: value("context"),
+    isHideLable: false,
+    isHideLableOnRemport: false,
+    isLocalDictonery: false,
+    isWrapper: false,
+    isCalculative: false,
+    isImageResize: false,
+    isBold: true,
+    createdBy: String(value("createdBy") || currentUser.userId),
+    updatedBy: String(currentUser.userId),
+    createdAt: value("createdAt") || now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.updateParameter, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["parameterId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect(`/super-admin/parameter/edit/${payload.parameterId}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/parameter/edit/${payload.parameterId}?error=${response.status}`);
+  }
+
+  redirect("/super-admin/parameter?updated=1");
+}
+
 export async function deleteLab(formData: FormData) {
   await requireUserType("SuperAdmin");
   const labId = String(formData.get("labId") ?? "").trim();
@@ -617,6 +730,30 @@ export async function deleteLab(formData: FormData) {
   }
 
   redirect("/super-admin/labs?deleted=1");
+}
+
+export async function deleteParameter(formData: FormData) {
+  await requireUserType("SuperAdmin");
+  const parameterId = String(formData.get("parameterId") ?? "").trim();
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.deleteParameter, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ parameterId }, ["parameterId"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/parameter?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/parameter?error=${response.status}`);
+  }
+
+  redirect("/super-admin/parameter?deleted=1");
 }
 
 type RegisterReportInput = {

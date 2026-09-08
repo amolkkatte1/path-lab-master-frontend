@@ -38,6 +38,12 @@ const primaryItems: NavItem[] = [
     label: "Labs",
     icon: FiBriefcase,
     match: "prefix",
+  },
+  {
+    href: "/super-admin/parameter",
+    label: "Test Parameters",
+    icon: FiClipboard,
+    match: "prefix",
   }
 ];
 
