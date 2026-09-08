@@ -1,0 +1,27 @@
+export type ApiLab = {
+  labId?: number | string;
+  labName?: string;
+  firstName?: string;
+  lastName?: string;
+  personalMobileNumber?: number | string;
+  workMobileNumber?: number | string;
+  mailId?: string;
+  address?: string;
+  landmark?: string;
+  city?: string;
+  distirct?: string;
+  district?: string;
+  state?: string;
+  country?: string;
+  pincode?: number | string;
+  sbuscriptionStartDate?: string;
+  subscriptionStartDate?: string;
+  sbuscriptionEndDate?: string;
+  subscriptionEndDate?: string;
+  patientCountAlloted?: number | string;
+  patientCountAllocated?: number | string;
+  createdBy?: number | string;
+  updatedBy?: number | string;
+  createdAt?: string;
+  updatedAt?: string;
+};

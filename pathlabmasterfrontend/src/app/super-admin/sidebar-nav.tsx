@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FiBox,
+  FiBriefcase,
   FiClipboard,
   FiGrid,
   FiHome,
@@ -32,6 +33,12 @@ const primaryItems: NavItem[] = [
     icon: FiUsers,
     match: "prefix",
   },
+  {
+    href: "/super-admin/labs",
+    label: "Labs",
+    icon: FiBriefcase,
+    match: "prefix",
+  }
 ];
 
 const masterItems: NavItem[] = [

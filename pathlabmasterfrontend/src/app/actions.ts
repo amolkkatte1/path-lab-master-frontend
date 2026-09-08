@@ -89,6 +89,54 @@ export async function createUser(formData: FormData) {
   redirect("/super-admin/users?created=1");
 }
 
+export async function createLab(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    labName: value("labName"),
+    firstName: value("firstName"),
+    lastName: value("lastName"),
+    personalMobileNumber: Number(value("personalMobileNumber")),
+    workMobileNumber: Number(value("workMobileNumber")),
+    mailId: value("mailId"),
+    address: value("address"),
+    landmark: value("landmark"),
+    city: value("city"),
+    distirct: value("distirct"),
+    state: value("state"),
+    country: value("country"),
+    pincode: Number(value("pincode")),
+    sbuscriptionStartDate: value("sbuscriptionStartDate"),
+    sbuscriptionEndDate: value("sbuscriptionEndDate"),
+    patientCountAlloted: Number(value("patientCountAlloted")),
+    createdBy: currentUser.userId,
+    updatedBy: currentUser.userId,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.createLab, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/labs/create?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/labs/create?error=${response.status}`);
+  }
+
+  redirect("/super-admin/labs?created=1");
+}
+
 export async function createPatient(formData: FormData) {
   const currentUser = await requireUserType("Administrator");
   const value = (name: string) => String(formData.get(name) ?? "").trim();
@@ -474,6 +522,55 @@ export async function updateUser(formData: FormData) {
   redirect("/super-admin/users?updated=1");
 }
 
+export async function updateLab(formData: FormData) {
+  const currentUser = await requireUserType("SuperAdmin");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const now = new Date().toISOString();
+
+  const payload = {
+    labId: String(value("labId")),
+    labName: value("labName"),
+    firstName: value("firstName"),
+    lastName: value("lastName"),
+    personalMobileNumber: Number(value("personalMobileNumber")),
+    workMobileNumber: Number(value("workMobileNumber")),
+    mailId: value("mailId"),
+    address: value("address"),
+    landmark: value("landmark"),
+    city: value("city"),
+    distirct: value("distirct"),
+    state: value("state"),
+    country: value("country"),
+    pincode: Number(value("pincode")),
+    sbuscriptionStartDate: value("sbuscriptionStartDate"),
+    sbuscriptionEndDate: value("sbuscriptionEndDate"),
+    patientCountAlloted: Number(value("patientCountAlloted")),
+    createdBy: String(value("createdBy") || currentUser.userId),
+    updatedBy: String(currentUser.userId),
+    createdAt: value("createdAt") || now,
+    updatedAt: now,
+  };
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.updateLab, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["labId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect(`/super-admin/labs/edit/${payload.labId}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/labs/edit/${payload.labId}?error=${response.status}`);
+  }
+
+  redirect("/super-admin/labs?updated=1");
+}
+
 export async function deleteUser(formData: FormData) {
   await requireUserType("SuperAdmin");
   const userId = String(formData.get("userId") ?? "").trim();
@@ -496,6 +593,30 @@ export async function deleteUser(formData: FormData) {
   }
 
   redirect("/super-admin/users?deleted=1");
+}
+
+export async function deleteLab(formData: FormData) {
+  await requireUserType("SuperAdmin");
+  const labId = String(formData.get("labId") ?? "").trim();
+
+  let response: Response;
+
+  try {
+    response = await fetch(API_ENDPOINTS.deleteLab, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ labId }, ["labId"]),
+      cache: "no-store",
+    });
+  } catch {
+    redirect("/super-admin/labs?error=connection");
+  }
+
+  if (!response.ok) {
+    redirect(`/super-admin/labs?error=${response.status}`);
+  }
+
+  redirect("/super-admin/labs?deleted=1");
 }
 
 type RegisterReportInput = {
