@@ -213,6 +213,36 @@ body {
   color: #94a3b8;
 }
 
+.pending-test-bold-control::after {
+  content: "Bold";
+}
+
+@media (max-width: 639px) {
+  .pending-test-parameter {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .pending-test-parameter > span:first-child {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .pending-test-parameter > input {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .pending-test-parameter > .pending-test-parameter-meta {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .pending-test-parameter > .pending-test-bold-control {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
 .pending-test-dialog-footer {
   border-color: rgba(255, 255, 255, 0.1);
 }

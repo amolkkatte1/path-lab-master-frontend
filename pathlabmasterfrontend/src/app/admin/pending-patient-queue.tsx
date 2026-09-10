@@ -32,12 +32,13 @@ function patientName(patient: PendingPatient) {
 }
 
 function patientTests(patient: PendingPatient) {
-  if (patient.testName) return patient.testName;
+  const removeTestId = (name: string) => name.replace(/_\d+$/, "");
+  if (patient.testName) return removeTestId(patient.testName);
   if (patient.testList?.length)
     return patient.testList
-      .map((test) => test.testName || test.serviceName || "Test")
+      .map((test) => removeTestId(test.testName || test.serviceName || "Test"))
       .join(", ");
-  if (patient.pendingTest) return Object.keys(patient.pendingTest).join(", ");
+  if (patient.pendingTest) return Object.keys(patient.pendingTest).map(removeTestId).join(", ");
   return "Pending test";
 }
 
@@ -116,7 +117,7 @@ export function PendingPatientQueue({
                   }
                 }}
                 tabIndex={patient.patientId ?? patient.id ? 0 : undefined}
-                className="dashboard-queue-row transition hover:bg-white/5"
+                className="dashboard-queue-row cursor-pointer transition hover:bg-white/5"
               >
                 <td className="px-5 py-4" data-label="Patient">
                   <p className="font-semibold text-white cursor-pointer transition hover:text-emerald-200">

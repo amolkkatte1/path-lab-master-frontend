@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FiEdit2, FiX } from "react-icons/fi";
-
+import { FiX } from "react-icons/fi";
 export type PendingParameter = {
   parameterName: string;
   value: string;
@@ -18,7 +17,7 @@ export type PendingParameter = {
 type PendingTestGroup = {
   key: string;
   code: string;
-  name: string;
+  // name: string;
   category: string;
   parameters: PendingParameter[];
 };
@@ -28,35 +27,49 @@ export function PendingTestsEditor({
 }: Readonly<{ tests: PendingTestGroup[] }>) {
   const [activeTest, setActiveTest] = useState<PendingTestGroup | null>(null);
 
+  function updateParameterBold(sequence: number, isBold: boolean) {
+    setActiveTest((current) =>
+      current
+        ? {
+            ...current,
+            parameters: current.parameters.map((parameter) =>
+              parameter.sequence === sequence
+                ? { ...parameter, isBold }
+                : parameter,
+            ),
+          }
+        : current,
+    );
+  }
+
   return (
     <>
       <div className="pending-tests-table-scroll overflow-x-auto">
-        <table className="pending-tests-table w-full min-w-[620px] text-left text-sm">
+        <table className="pending-tests-table w-full min-w-[520px] text-left text-sm">
           <thead className="pending-tests-table-head text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
               <th className="px-5 py-3 font-semibold">Test name</th>
               <th className="px-5 py-3 font-semibold">Category</th>
-              <th className="px-5 py-3 text-right font-semibold">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/8">
             {tests.map((test) => (
-              <tr key={test.key} className="pending-tests-table-row transition hover:bg-white/5">
-                <td className="px-5 py-4">
-                  <p className="font-semibold text-white">{test.name} ({test.code})</p>
+              <tr
+                key={test.key}
+                onClick={() => setActiveTest(test)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setActiveTest(test);
+                  }
+                }}
+                tabIndex={0}
+                className="pending-tests-table-row cursor-pointer transition hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-emerald-400/60"
+              >
+                <td className="px-5 py-5">
+                  <p className="font-semibold text-white">{test.code}</p>
                 </td>
                 <td className="px-5 py-4 text-slate-300">{test.category || "-"}</td>
-                <td className="px-5 py-4 text-right">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTest(test)}
-                    aria-label={`Edit ${test.name}`}
-                    title={`Edit ${test.name}`}
-                    className="inline-flex rounded-lg border border-white/10 p-2 text-emerald-300 transition hover:bg-emerald-400/10 hover:text-emerald-200"
-                  >
-                    <FiEdit2 />
-                  </button>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -67,7 +80,7 @@ export function PendingTestsEditor({
         <dialog
           open
           className="fixed inset-0 z-50 m-0 flex h-full w-full items-center justify-center border-0 bg-slate-950/75 p-4 backdrop-blur-sm"
-          aria-label={`Edit ${activeTest.code} ${activeTest.name}`}
+          aria-label={`Edit ${activeTest.code}`}
         >
           <div className="pending-test-dialog max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border shadow-2xl">
             <div className="pending-test-dialog-header sticky top-0 z-10 flex items-center justify-between border-b px-5 py-4 backdrop-blur">
@@ -77,7 +90,7 @@ export function PendingTestsEditor({
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <h2 className="text-xl font-semibold text-white">
-                    {activeTest.code} ({activeTest.name})
+                    {activeTest.code}
                   </h2>
                   {activeTest.category && (
                     <span className="text-sm text-emerald-300">
@@ -103,9 +116,9 @@ export function PendingTestsEditor({
                   (parameter) => parameter.sequence !== 1 && parameter.sequence !== 2,
                 )
                 .map((parameter, index) => (
-                    <label
+                    <div
                       key={`${parameter.sequence}-${index}`}
-                      className={`pending-test-parameter grid gap-2 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_180px] sm:items-center ${parameter.isBold ? "font-semibold" : ""}`}
+                      className={`pending-test-parameter grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_180px_auto] sm:items-center ${parameter.isBold ? "font-semibold" : ""}`}
                     >
                       <span
                         className={parameter.isBold ? "font-semibold" : "text-sm"}
@@ -130,7 +143,20 @@ export function PendingTestsEditor({
                           ? ` ${parameter.lowerRange ?? ""}-${parameter.upperRange ?? ""}`
                           : ""}
                       </span>
-                    </label>
+                      <label aria-label="Bold" className="pending-test-bold-control flex items-center gap-2 text-s font-medium text-slate-400">
+                        <input
+                          type="checkbox"
+                          checked={parameter.isBold}
+                          onChange={(event) =>
+                            updateParameterBold(
+                              parameter.sequence,
+                              event.target.checked,
+                            )
+                          }
+                          className="h-4 w-4 accent-emerald-500"
+                        />
+                      </label>
+                    </div>
                 ))}
             </div>
             <div className="pending-test-dialog-footer flex justify-end border-t px-5 py-4">

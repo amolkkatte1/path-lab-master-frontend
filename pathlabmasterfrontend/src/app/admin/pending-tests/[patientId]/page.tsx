@@ -63,10 +63,10 @@ async function getPendingTests(patientId: string, labId: number) {
     const tests = Object.entries(data?.pendingTest ?? {}).map(
       ([key, parameters]) => ({
         key,
-        code: key.split("_")[0],
-        name:
-          parameters.find((parameter) => parameter.sequence === 2)?.parameterName ||
-          key.replace(/_\d+$/, "").replaceAll("_", " "),
+        code: key.replace(/_\d+$/, ""),
+        // name:
+        //   parameters.find((parameter) => parameter.sequence === 2)?.parameterName ||
+        //   key.replace(/_\d+$/, "").replaceAll("_", " "),
         category: parameters.find((parameter) => parameter.sequence === 1)?.parameterName ||
           parameters.find((parameter) => parameter.sequence === 1)?.value?.trim() ||
           "",
