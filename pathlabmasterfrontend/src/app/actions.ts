@@ -1101,3 +1101,46 @@ export async function registerReport({ patientId, testList }: RegisterReportInpu
     return { ok: false as const, error: "Unable to connect to the report service." };
   }
 }
+
+export type SaveReportPayload = {
+  reportId: string;
+  patientId: string;
+  labId: string;
+  pendingTest: Record<string, unknown[]>;
+  completedTest: Record<string, unknown[]>;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean }>;
+};
+
+export async function saveReport(payload: SaveReportPayload) {
+  await requireUserType("Administrator");
+
+  const body = stringifyApiPayload(payload, [
+    "reportId", "patientId", "labId", "createdBy", "updatedBy",
+  ]);
+
+  // console.log("[saveReport] request body:", body);
+
+  try {
+    const response = await fetch(API_ENDPOINTS.saveReport, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, error: `Save failed (${response.status}). Please try again.` };
+    }
+
+    // const data = await response.json()
+    // console.log("[response]-----", data)
+
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: `Network error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}

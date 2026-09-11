@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   updateTest: `${API_BASE_URL}/test/update`,
   deleteTest: `${API_BASE_URL}/test/delete`,
   registerReport: `${API_BASE_URL}/report/register`,
+  saveReport: `${API_BASE_URL}/report/save`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,
   getDoctor: `${API_BASE_URL}/doctor/get`,

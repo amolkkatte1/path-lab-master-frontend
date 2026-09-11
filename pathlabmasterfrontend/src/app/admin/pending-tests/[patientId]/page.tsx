@@ -7,76 +7,75 @@ import { requireUserType } from "@/lib/auth";
 import {
   PendingTestsEditor,
   type PendingParameter,
+  type TestStatus,
+  type ReportData,
 } from "@/app/admin/pending-tests/pending-tests-editor";
 
-type PendingReportItem = {
-  testName?: string;
-  serviceName?: string;
-  name?: string;
-  testList?: PendingReportItem[];
-  pendingTest?: Record<string, unknown>;
+type PendingReportData = {
+  reportId?: string;
+  patientId?: string;
+  labId?: string;
+  pendingTest?: Record<string, PendingParameter[]>;
+  completedTest?: Record<string, PendingParameter[]>;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  status?: Record<string, TestStatus>;
 };
 
 type PendingReportsResponse = {
-  data?: PendingReportItem[] | PendingReportItem | Record<string, unknown>;
+  data?: PendingReportData;
 };
-
-type PendingReportData = {
-  pendingTest?: Record<string, PendingParameter[]>;
-};
-
-function collectTestNames(value: unknown, names: string[] = []) {
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectTestNames(item, names));
-    return names;
-  }
-
-  if (!value || typeof value !== "object") return names;
-  const item = value as PendingReportItem;
-  const name = item.testName || item.serviceName || item.name;
-
-  if (name) names.push(name);
-  if (item.testList) collectTestNames(item.testList, names);
-  if (item.pendingTest) names.push(...Object.keys(item.pendingTest));
-
-  return names;
-}
 
 async function getPendingTests(patientId: string, labId: number) {
   try {
     const response = await fetch(
       getPendingReportsByPatientId(patientId, labId),
-      {
-        cache: "no-store",
-      },
+      { cache: "no-store" },
     );
 
     if (!response.ok) {
       return {
         tests: [],
+        reportData: null,
         error: `The pending reports service returned ${response.status}.`,
       };
     }
 
     const payload = await parseApiResponse<PendingReportsResponse>(response);
-    const data = payload.data as PendingReportData | undefined;
+    const data = payload.data;
+
     const tests = Object.entries(data?.pendingTest ?? {}).map(
       ([key, parameters]) => ({
         key,
         code: key.replace(/_\d+$/, ""),
-        // name:
-        //   parameters.find((parameter) => parameter.sequence === 2)?.parameterName ||
-        //   key.replace(/_\d+$/, "").replaceAll("_", " "),
-        category: parameters.find((parameter) => parameter.sequence === 1)?.parameterName ||
-          parameters.find((parameter) => parameter.sequence === 1)?.value?.trim() ||
+        category:
+          parameters.find((p) => p.sequence === 1)?.parameterName ||
+          parameters.find((p) => p.sequence === 1)?.value?.trim() ||
           "",
         parameters,
       }),
     );
-    return { tests: tests ?? [], error: null };
+
+    const reportData: ReportData = {
+      reportId: data?.reportId ?? "",
+      patientId: data?.patientId ?? patientId,
+      labId: data?.labId ?? String(labId),
+      pendingTest: data?.pendingTest ?? {},
+      completedTest: data?.completedTest ?? {},
+      createdBy: data?.createdBy ?? "",
+      updatedBy: data?.updatedBy ?? "",
+      createdAt: data?.createdAt ?? "",
+      updatedAt: data?.updatedAt ?? "",
+      status: data?.status ?? {},
+    };
+
+    return { tests, reportData, error: null };
   } catch {
     return {
       tests: [],
+      reportData: null,
       error: "Unable to load pending tests for this patient.",
     };
   }
@@ -92,7 +91,7 @@ export default async function PendingTestsPage({
   const user = await requireUserType("Administrator");
   const { patientId } = await params;
   const { patientName } = await searchParams;
-  const { tests, error } = await getPendingTests(patientId, user.labId);
+  const { tests, reportData, error } = await getPendingTests(patientId, user.labId);
   let testsContent: ReactNode;
 
   if (error) {
@@ -102,7 +101,13 @@ export default async function PendingTestsPage({
       <p className="p-5 text-sm text-slate-400">No pending tests were found.</p>
     );
   } else {
-    testsContent = <PendingTestsEditor tests={tests} />;
+    testsContent = (
+      <PendingTestsEditor
+        tests={tests}
+        reportData={reportData!}
+        currentUserId={user.userId}
+      />
+    );
   }
 
   return (
