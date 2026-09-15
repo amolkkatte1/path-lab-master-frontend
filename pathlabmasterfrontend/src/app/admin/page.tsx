@@ -1,4 +1,4 @@
-import { getPendingPatientsByLabId, getPatientCountTodayByLabId, parseApiResponse, API_ENDPOINTS, stringifyApiPayload } from "@/lib/api";
+import { getPendingPatientsByLabId, getPatientCountTodayByLabId, getPatientDashboardByLabId, parseApiResponse, API_ENDPOINTS, stringifyApiPayload } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import {
   PendingPatientQueue,
@@ -56,6 +56,30 @@ async function getTodayPatientCount(labId: number) {
   }
 }
 
+async function getPatientDashboard(labId: number) {
+  try {
+    const response = await fetch(getPatientDashboardByLabId(labId), {
+      cache: "no-store",
+    });
+
+    if (!response.ok) return { totalPatients: 0, monthlyGrowthPercentage: 0, error: `The dashboard returned ${response.status}.` };
+
+    const payload = await parseApiResponse<{
+      data?: { totalPatients?: number; currentMonthPatients?: number; monthlyGrowthPercentage?: number };
+    }>(response);
+
+    const data = payload.data ?? null;
+    return {
+      totalPatients: data?.totalPatients ?? 0,
+      currentMonthPatients: data?.currentMonthPatients ?? 0,
+      monthlyGrowthPercentage: data?.monthlyGrowthPercentage ?? 0,
+      error: null,
+    };
+  } catch {
+    return { totalPatients: 0, currentMonthPatients: 0, monthlyGrowthPercentage: 0, error: "Unable to load patient dashboard." };
+  }
+}
+
 async function fetchLab(labId: number) {
   try {
     const response = await fetch(API_ENDPOINTS.getLab, {
@@ -92,6 +116,7 @@ export default async function AdminDashboard() {
   const { patients, error: queueError } = await getPendingPatients(user.labId);
   const lab = await fetchLab(user.labId);
   const { count: todayCount } = await getTodayPatientCount(user.labId);
+  const { totalPatients, currentMonthPatients, monthlyGrowthPercentage } = await getPatientDashboard(user.labId);
   const subscriptionEndRaw = lab?.sbuscriptionEndDate ?? lab?.subscriptionEndDate ?? null;
   function parseDateRaw(raw: unknown) {
     if (!raw && raw !== 0) return null;
@@ -147,7 +172,7 @@ export default async function AdminDashboard() {
     {
       label: "Today's samples",
       value: String(todayCount ?? 0),
-      detail: "+12.5%",
+      detail: "Great work today!",
       icon: FiActivity,
       color: "text-emerald-300",
     },
@@ -161,8 +186,8 @@ export default async function AdminDashboard() {
     },
     {
       label: "Total patients",
-      value: "1,248",
-      detail: "+4.8% this month",
+      value: String(currentMonthPatients ?? totalPatients ?? 0),
+      detail: `${monthlyGrowthPercentage && !Number.isNaN(Number(monthlyGrowthPercentage)) ? (Number(monthlyGrowthPercentage) > 0 ? '+' : '') + String(Number(monthlyGrowthPercentage)) : '0'}% this month`,
       icon: FiUserPlus,
       color: "text-sky-300",
     },
