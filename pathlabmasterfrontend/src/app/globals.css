@@ -386,6 +386,17 @@ body {
   background: rgba(16, 185, 129, 0.12);
 }
 
+/* Blink animation for urgent subscription expiry */
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+.blink-red {
+  color: #ff6b6b !important;
+  animation: blink 1s linear infinite;
+}
+
 @media (max-width: 639px) {
   .test-request-table,
   .test-request-table tbody,

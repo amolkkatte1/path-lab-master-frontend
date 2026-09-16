@@ -1,4 +1,4 @@
-import { getPendingPatientsByLabId, parseApiResponse } from "@/lib/api";
+import { getPendingPatientsByLabId, getPatientCountTodayByLabId, getPatientDashboardByLabId, parseApiResponse, API_ENDPOINTS, stringifyApiPayload } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import {
   PendingPatientQueue,
@@ -41,42 +41,68 @@ async function getPendingPatients(labId: number) {
   }
 }
 
-const adminHighlights: Array<{
-  label: string;
-  value: string;
-  detail: string;
-  icon: typeof FiActivity;
-  color: string;
-}> = [
-  {
-    label: "Today's samples",
-    value: "184",
-    detail: "+12.5%",
-    icon: FiActivity,
-    color: "text-emerald-300",
-  },
-  {
-    label: "Pending reports",
-    value: "27",
-    detail: "8 need review",
-    icon: FiClock,
-    color: "text-amber-300",
-  },
-  {
-    label: "Total patients",
-    value: "1,248",
-    detail: "+4.8% this month",
-    icon: FiUserPlus,
-    color: "text-sky-300",
-  },
-  {
-    label: "Critical alerts",
-    value: "03",
-    detail: "Requires attention",
-    icon: FiAlertCircle,
-    color: "text-rose-300",
-  },
-];
+async function getTodayPatientCount(labId: number) {
+  try {
+    const response = await fetch(getPatientCountTodayByLabId(labId), {
+      cache: "no-store",
+    });
+
+    if (!response.ok) return { count: 0, error: `The patient count returned ${response.status}.` };
+
+    const payload = await parseApiResponse<{ data?: number }>(response);
+    return { count: payload.data ?? 0, error: null };
+  } catch {
+    return { count: 0, error: "Unable to load today's patient count." };
+  }
+}
+
+async function getPatientDashboard(labId: number) {
+  try {
+    const response = await fetch(getPatientDashboardByLabId(labId), {
+      cache: "no-store",
+    });
+
+    if (!response.ok) return { totalPatients: 0, monthlyGrowthPercentage: 0, error: `The dashboard returned ${response.status}.` };
+
+    const payload = await parseApiResponse<{
+      data?: { totalPatients?: number; currentMonthPatients?: number; monthlyGrowthPercentage?: number };
+    }>(response);
+
+    const data = payload.data ?? null;
+    return {
+      totalPatients: data?.totalPatients ?? 0,
+      currentMonthPatients: data?.currentMonthPatients ?? 0,
+      monthlyGrowthPercentage: data?.monthlyGrowthPercentage ?? 0,
+      error: null,
+    };
+  } catch {
+    return { totalPatients: 0, currentMonthPatients: 0, monthlyGrowthPercentage: 0, error: "Unable to load patient dashboard." };
+  }
+}
+
+async function fetchLab(labId: number) {
+  try {
+    const response = await fetch(API_ENDPOINTS.getLab, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ labId }, ["labId"]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    const payload = await parseApiResponse<any>(response);
+    const candidate = payload?.data ?? payload?.result ?? payload?.lab ?? payload;
+
+    if (!candidate) return null;
+    if (Array.isArray(candidate)) return candidate[0] ?? null;
+    return typeof candidate === "object" ? candidate : null;
+  } catch {
+    return null;
+  }
+}
+
+// Highlights are computed per-request so we can inject dynamic values
 
 const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
   { icon: FiUserPlus, label: "Add Patient" },
@@ -88,6 +114,97 @@ const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
 export default async function AdminDashboard() {
   const user = await requireUserType("Administrator");
   const { patients, error: queueError } = await getPendingPatients(user.labId);
+  const lab = await fetchLab(user.labId);
+  const { count: todayCount } = await getTodayPatientCount(user.labId);
+  const { totalPatients, currentMonthPatients, monthlyGrowthPercentage } = await getPatientDashboard(user.labId);
+  const subscriptionEndRaw = lab?.sbuscriptionEndDate ?? lab?.subscriptionEndDate ?? null;
+  function parseDateRaw(raw: unknown) {
+    if (!raw && raw !== 0) return null;
+    const s = String(raw).trim();
+    if (!s) return null;
+    // numeric timestamp (seconds or ms)
+    if (/^\d+$/.test(s)) {
+      const n = Number(s);
+      const date = new Date(s.length <= 10 ? n * 1000 : n);
+      if (!Number.isNaN(date.getTime())) return date;
+    }
+    // common API format with space between date/time -> replace with T
+    const normalized = s.replace(" ", "T");
+    const date = new Date(normalized);
+    if (!Number.isNaN(date.getTime())) return date;
+    // fallback: try replacing slashes with dashes
+    const alt = s.replace(/\//g, "-");
+    const date2 = new Date(alt);
+    if (!Number.isNaN(date2.getTime())) return date2;
+    return null;
+  }
+
+  const subscriptionDate = parseDateRaw(subscriptionEndRaw);
+  function formatDateLong(d: Date) {
+    const months = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
+    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  const subscriptionDetail = subscriptionDate
+    ? `Subscription Ends On : ${formatDateLong(subscriptionDate)}`
+    : "Requires attention";
+  const adminHighlights: Array<{
+    label: string;
+    value: string;
+    detail: string;
+    blink?: boolean;
+    icon: typeof FiActivity;
+    color: string;
+  }> = [
+    {
+      label: "Today's samples",
+      value: String(todayCount ?? 0),
+      detail: "Great work today!",
+      icon: FiActivity,
+      color: "text-emerald-300",
+    },
+    {
+      label: "Pending Reports",
+      // Use the pending patients count from the API to show an accurate value
+      value: String(patients.length ?? 0),
+      detail: "Testing Need To Be Completed",
+      icon: FiClock,
+      color: "text-amber-300",
+    },
+    {
+      label: "Total patients",
+      value: String(currentMonthPatients ?? totalPatients ?? 0),
+      detail: `${monthlyGrowthPercentage && !Number.isNaN(Number(monthlyGrowthPercentage)) ? (Number(monthlyGrowthPercentage) > 0 ? '+' : '') + String(Number(monthlyGrowthPercentage)) : '0'}% this month`,
+      icon: FiUserPlus,
+      color: "text-sky-300",
+    },
+    {
+      label: "Patient Count Allotted",
+      // use the lab's patientCountAlloted / patientCountAllocated when present
+      value: String(lab?.patientCountAlloted ?? lab?.patientCountAllocated ?? "03"),
+      detail: subscriptionDetail,
+      // blink when expiry <= 5 days
+      blink:
+        subscriptionDate
+          ? Math.ceil((subscriptionDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 5
+          : false,
+      icon: FiAlertCircle,
+      color: "text-rose-300",
+    },
+  ];
 
   return (
     <section className="mx-auto max-w-[1500px] space-y-5">
@@ -114,7 +231,7 @@ export default async function AdminDashboard() {
       </div>
 
       <section className="mx-1 rounded-2xl flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4 bg-none">
-        {adminHighlights.map(({ label, value, detail, icon: Icon, color }) => (
+        {adminHighlights.map(({ label, value, detail, blink, icon: Icon, color }) => (
           <article
             key={label}
             className="min-w-[calc(50vw-3rem)] snap-start rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)] sm:min-w-0"
@@ -124,7 +241,7 @@ export default async function AdminDashboard() {
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
             <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
-            <p className={`mt-2 text-xs ${color}`}>{detail}</p>
+            <p className={`mt-2 text-xs ${color} ${blink ? "blink-red" : ""}`}>{detail}</p>
           </article>
         ))}
       </section>

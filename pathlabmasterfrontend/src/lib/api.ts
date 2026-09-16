@@ -50,6 +50,14 @@ export function getPendingPatientsByLabId(labId: number | string) {
   return `${API_BASE_URL}/report/pending-patient/labId/${labId}`;
 }
 
+export function getPatientCountTodayByLabId(labId: number | string) {
+  return `${API_BASE_URL}/patient/count/today/labId/${labId}`;
+}
+
+export function getPatientDashboardByLabId(labId: number | string) {
+  return `${API_BASE_URL}/patient/dashboard/labId/${labId}`;
+}
+
 export function getPendingReportsByPatientId(
   patientId: number | string,
   labId: number | string,
