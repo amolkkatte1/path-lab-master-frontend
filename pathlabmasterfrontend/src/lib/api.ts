@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
   updateTest: `${API_BASE_URL}/test/update`,
   deleteTest: `${API_BASE_URL}/test/delete`,
   registerReport: `${API_BASE_URL}/report/register`,
+  addReport: `${API_BASE_URL}/report/add`,
   saveReport: `${API_BASE_URL}/report/save`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,
@@ -58,6 +59,10 @@ export function getPendingReportsByPatientId(
 
 export function getDoctorListByLabId(labId: number | string) {
   return `${API_BASE_URL}/doctor/list/labId/${labId}`;
+}
+
+export function getConfigByLabId(labId: number | string) {
+  return `${API_BASE_URL}/config/get/labId/${labId}`;
 }
 
 const LARGE_INTEGER_PATTERN = /:\s*(-?\d{16,})(?=\s*[,}\]])/g;

@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiCheck, FiLoader, FiSearch, FiX } from "react-icons/fi";
-import { registerReport } from "@/app/actions";
+import { FiCheck, FiLoader, FiLock, FiSearch, FiX } from "react-icons/fi";
+import { registerReport, addReport } from "@/app/actions";
 
 
 export type AvailableTest = {
@@ -28,6 +28,7 @@ export type AvailableTest = {
 type TestRegistrationFormProps = {
   availableTests: AvailableTest[];
   patientId: string;
+  alreadyRegisteredKeys: string[];
 };
 
 function displayTestCode(test: AvailableTest) {
@@ -42,8 +43,11 @@ function displayAmount(test: AvailableTest) {
 export function TestRegistrationForm({
   availableTests,
   patientId,
+  alreadyRegisteredKeys,
 }: Readonly<TestRegistrationFormProps>) {
   const router = useRouter();
+  const hasExistingTests = alreadyRegisteredKeys.length > 0;
+
   const [rows, setRows] = useState<Array<AvailableTest | null>>([null]);
   const [rowIds, setRowIds] = useState(["test-request-row-0"]);
   const nextRowId = useRef(1);
@@ -51,6 +55,7 @@ export function TestRegistrationForm({
   const [activeRow, setActiveRow] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+
   useEffect(() => {
     function closeDropdown(event: PointerEvent) {
       const target = event.target;
@@ -67,6 +72,8 @@ export function TestRegistrationForm({
   const filteredTests = useMemo(() => {
     if (activeRow === null) return [];
     const query = searches[activeRow]?.trim().toLowerCase() ?? "";
+
+    // Exclude tests already registered on the server and tests already selected in other rows
     const selectedTestIds = new Set(
       rows
         .filter((test): test is AvailableTest => test !== null)
@@ -74,14 +81,20 @@ export function TestRegistrationForm({
     );
 
     return availableTests
-      .filter((test) => !selectedTestIds.has(String(test.testId)))
+      .filter((test) => {
+        if (selectedTestIds.has(String(test.testId))) return false;
+        // Also exclude if this test's name matches one of the already-registered keys
+        const testName = test.testName.trim();
+        if (alreadyRegisteredKeys.some((key) => key === testName)) return false;
+        return true;
+      })
       .filter((test) =>
         `${test.testName} ${displayTestCode(test)} ${test.serviceName ?? ""}`
           .toLowerCase()
           .includes(query),
       )
       .slice(0, 8);
-  }, [activeRow, availableTests, rows, searches]);
+  }, [activeRow, availableTests, rows, searches, alreadyRegisteredKeys]);
 
   function removeRow(index: number) {
     if (index === 0) {
@@ -90,24 +103,14 @@ export function TestRegistrationForm({
       return;
     }
 
-    setRows((current) =>
-      current.filter((_, rowIndex) => rowIndex !== index),
-    );
-    setSearches((current) =>
-      current.filter((_, rowIndex) => rowIndex !== index),
-    );
-    setRowIds((current) =>
-      current.filter((_, rowIndex) => rowIndex !== index),
-    );
+    setRows((current) => current.filter((_, rowIndex) => rowIndex !== index));
+    setSearches((current) => current.filter((_, rowIndex) => rowIndex !== index));
+    setRowIds((current) => current.filter((_, rowIndex) => rowIndex !== index));
     setActiveRow(null);
   }
 
   function chooseTest(index: number, test: AvailableTest) {
-    if (
-      rows.some(
-        (selectedTest) => selectedTest?.testId === test.testId,
-      )
-    ) {
+    if (rows.some((selectedTest) => selectedTest?.testId === test.testId)) {
       setActiveRow(null);
       return;
     }
@@ -120,9 +123,7 @@ export function TestRegistrationForm({
         ...current,
       ]);
       setActiveRow(null);
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
+      if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
       setError("");
       return;
     }
@@ -131,14 +132,10 @@ export function TestRegistrationForm({
       current.map((row, rowIndex) => (rowIndex === index ? test : row)),
     );
     setSearches((current) =>
-      current.map((search, rowIndex) =>
-        rowIndex === index ? test.testName : search,
-      ),
+      current.map((search, rowIndex) => rowIndex === index ? test.testName : search),
     );
     setActiveRow(null);
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
     setError("");
   }
 
@@ -147,14 +144,17 @@ export function TestRegistrationForm({
       (test): test is AvailableTest => test !== null,
     );
     if (selectedTests.length === 0) {
-      setError("Select at least one test before saving.");
+      setError("Select at least one new test before saving.");
       return;
     }
 
     setIsSaving(true);
     setError("");
     try {
-      const result = await registerReport({
+      // Use addReport when the patient already has tests registered,
+      // registerReport when this is the first registration.
+      const action = hasExistingTests ? addReport : registerReport;
+      const result = await action({
         patientId,
         testList: selectedTests as unknown as Array<Record<string, unknown>>,
       });
@@ -177,15 +177,19 @@ export function TestRegistrationForm({
         <div>
           <h2 className="text-lg font-semibold text-white">Test requests</h2>
           <p className="mt-1 text-sm text-slate-400">
-            Add all requested tests.
+            {hasExistingTests
+              ? "Previously registered tests are shown below. Add new tests to register."
+              : "Add all requested tests."}
           </p>
         </div>
       </div>
+
       {error && (
         <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-400/10 p-3 text-sm text-rose-100">
           {error}
         </div>
       )}
+
       <div className="test-request-table-frame mt-5 overflow-visible rounded-xl border">
         <table className="test-request-table w-full text-left text-sm">
           <thead className="test-request-table-head text-slate-300">
@@ -198,6 +202,22 @@ export function TestRegistrationForm({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/8">
+            {/* Already-registered tests — locked, non-removable */}
+            {alreadyRegisteredKeys.map((testName) => (
+              <tr key={`locked-${testName}`} className="test-request-table-row border-b opacity-50">
+                <td className="px-3 py-3 align-middle text-slate-500">
+                  <FiLock className="h-4 w-4" />
+                </td>
+                <td className="px-4 py-3 text-slate-300" colSpan={4}>
+                  {testName}
+                  <span className="ml-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                    Already registered
+                  </span>
+                </td>
+              </tr>
+            ))}
+
+            {/* New test rows */}
             {rows.map((test, index) => (
               <tr
                 key={rowIds[index]}
@@ -277,6 +297,7 @@ export function TestRegistrationForm({
           </tbody>
         </table>
       </div>
+
       <div className="mt-5 flex flex-wrap justify-end gap-2">
         <button
           type="button"
@@ -298,3 +319,4 @@ export function TestRegistrationForm({
     </>
   );
 }
+

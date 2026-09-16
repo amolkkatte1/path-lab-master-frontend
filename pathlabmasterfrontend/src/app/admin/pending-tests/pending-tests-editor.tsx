@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiCheck, FiPrinter, FiSave, FiX } from "react-icons/fi";
 import { saveReport } from "@/app/actions";
+import { buildPrintHtml } from "./report-print-view";
 
 export type PendingParameter = {
   parameterName: string;
@@ -15,6 +16,7 @@ export type PendingParameter = {
   upperRange: number | null;
   lowerRange: number | null;
   isBold: boolean;
+  isNameBold: boolean | null;
 };
 
 export type TestStatus = {
@@ -36,6 +38,14 @@ export type ReportData = {
   status: Record<string, TestStatus>;
 };
 
+export type PatientInfo = {
+  patientName?: string;
+  gender?: string;
+  age?: string;
+  doctorName?: string;
+  mobileNumber?: string;
+};
+
 type PendingTestGroup = {
   key: string;
   code: string;
@@ -53,26 +63,48 @@ function buildStatusFlags(action: SaveAction): TestStatus {
   };
 }
 
+function openPrintWindow(html: string) {
+  const win = window.open("", "_blank", "width=900,height=700");
+  if (!win) return;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  // Wait for resources to load then trigger print dialog
+  win.onload = () => {
+    win.focus();
+    win.print();
+  };
+  // Fallback if onload already fired
+  setTimeout(() => {
+    try { win.focus(); win.print(); } catch { /* already printed */ }
+  }, 800);
+}
+
 export function PendingTestsEditor({
   tests,
   reportData,
   currentUserId,
+  labName,
+  patientInfo,
+  reportTopSpace,
+  reportBottomSpace,
 }: Readonly<{
   tests: PendingTestGroup[];
   reportData: ReportData;
   currentUserId: string;
+  labName: string;
+  patientInfo: PatientInfo;
+  reportTopSpace: number;
+  reportBottomSpace: number;
 }>) {
   const [activeTest, setActiveTest] = useState<PendingTestGroup | null>(null);
-  // track bold state for the active test's parameters
   const [boldMap, setBoldMap] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState<SaveAction | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
-  // ref map: sequence → input element
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
   const router = useRouter();
 
   function openTest(test: PendingTestGroup) {
-    // seed bold state from current parameters
     const seed: Record<number, boolean> = {};
     for (const p of test.parameters) seed[p.sequence] = p.isBold;
     setBoldMap(seed);
@@ -85,7 +117,6 @@ export function PendingTestsEditor({
     setBoldMap((prev) => ({ ...prev, [sequence]: isBold }));
   }
 
-  /** Collect current input values + bold states into a parameter array */
   function collectParameters(): PendingParameter[] {
     if (!activeTest) return [];
     return activeTest.parameters.map((p) => ({
@@ -102,7 +133,6 @@ export function PendingTestsEditor({
 
     const updatedParameters = collectParameters();
 
-    // Move this test from pendingTest → completedTest
     const newPending = { ...reportData.pendingTest };
     delete newPending[activeTest.key];
 
@@ -111,7 +141,6 @@ export function PendingTestsEditor({
       [activeTest.key]: updatedParameters,
     };
 
-    // Update status flags for this test only
     const newStatus = {
       ...reportData.status,
       [activeTest.key]: buildStatusFlags(action),
@@ -141,12 +170,34 @@ export function PendingTestsEditor({
         return;
       }
 
-      // For approve_print, trigger browser print before closing
       if (action === "approve_print") {
-        window.print();
+        // Build all completed test groups for the report.
+        // Include the test we just saved (updatedParameters) plus any
+        // previously completed tests.
+        const allCompleted: Record<string, PendingParameter[]> = {
+          ...reportData.completedTest,
+          [activeTest.key]: updatedParameters,
+        };
+
+        const testGroups = Object.entries(allCompleted).map(([key, parameters]) => ({
+          key,
+          code: key.replace(/_\d+$/, ""),
+          parameters,
+        }));
+
+        const html = buildPrintHtml({
+          labName,
+          patientInfo,
+          reportId: reportData.reportId,
+          createdAt: reportData.createdAt,
+          testGroups,
+          reportTopSpace,
+          reportBottomSpace,
+        });
+
+        openPrintWindow(html);
       }
 
-      // Close dialog and refresh the page data
       setActiveTest(null);
       router.refresh();
     } catch {
@@ -244,9 +295,9 @@ export function PendingTestsEditor({
                   return (
                     <div
                       key={`${parameter.sequence}-${index}`}
-                      className={`pending-test-parameter grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_180px_auto] sm:items-center ${isBold ? "font-semibold" : ""}`}
+                      className="pending-test-parameter grid gap-3 rounded-xl border p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_180px_auto] sm:items-center"
                     >
-                      <span className={isBold ? "font-semibold" : "text-sm"}>
+                      <span className="text-sm">
                         {parameter.parameterName || parameter.value || " "}
                       </span>
                       <input
@@ -261,7 +312,7 @@ export function PendingTestsEditor({
                         }
                         min={parameter.lowerRange ?? undefined}
                         max={parameter.upperRange ?? undefined}
-                        className="pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 outline-none"
+                        className={`pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 outline-none${isBold ? " font-semibold" : ""}`}
                       />
                       <span className="pending-test-parameter-meta text-xs">
                         {parameter.unit || ""}

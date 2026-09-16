@@ -8,7 +8,7 @@ const items = [
   { href: "/admin", label: "Dashboard", icon: FiHome },
   { href: "/admin/patients", label: "Patients", icon: FiUsers },
   { href: "/admin/doctors", label: "Doctors", icon: FiUserCheck },
-  { href: "/admin/tests", label: "Test Requests", icon: FiClipboard },
+  // { href: "/admin/tests", label: "Test Requests", icon: FiClipboard },
   { href: "/admin/reports", label: "Reports", icon: FiFileText },
   { href: "/admin/analytics", label: "Analytics", icon: FiBarChart2 },
   { href: "/admin/settings", label: "Settings", icon: FiSettings },

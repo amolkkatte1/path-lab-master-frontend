@@ -2,13 +2,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 
-import { getPendingReportsByPatientId, parseApiResponse } from "@/lib/api";
+import { API_ENDPOINTS, getPendingReportsByPatientId, parseApiResponse, stringifyApiPayload, getConfigByLabId } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import {
   PendingTestsEditor,
   type PendingParameter,
   type TestStatus,
   type ReportData,
+  type PatientInfo,
 } from "@/app/admin/pending-tests/pending-tests-editor";
 
 type PendingReportData = {
@@ -27,6 +28,72 @@ type PendingReportData = {
 type PendingReportsResponse = {
   data?: PendingReportData;
 };
+
+type PatientApiData = {
+  patientId?: number | string;
+  prefix?: string;
+  firstName?: string;
+  middleName?: string;
+  lastName?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  year?: number | string;
+  month?: number | string;
+  days?: number | string;
+  doctorName?: string;
+  mobileNumber?: number | string;
+};
+
+type PatientApiResponse = { data?: PatientApiData } | PatientApiData;
+
+async function getPatientInfo(patientId: string): Promise<PatientInfo> {
+  try {
+    const response = await fetch(API_ENDPOINTS.getPatient, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ patientId }, ["patientId"]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return {};
+
+    const payload = await parseApiResponse<PatientApiResponse>(response);
+    const data = "patientId" in payload ? payload : ((payload as { data?: PatientApiData }).data ?? {});
+
+    const nameParts = [data.prefix, data.firstName, data.middleName, data.lastName].filter(Boolean);
+
+    const ageParts: string[] = [];
+    if (data.year) ageParts.push(`${data.year}Y`);
+    if (data.month) ageParts.push(`${data.month}M`);
+    if (data.days) ageParts.push(`${data.days}D`);
+
+    return {
+      patientName: nameParts.join(" ") || undefined,
+      gender: data.gender,
+      age: ageParts.join(" ") || undefined,
+      doctorName: data.doctorName,
+      mobileNumber: data.mobileNumber ? String(data.mobileNumber) : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function getLabConfig(labId: number): Promise<{ topSpace: number; bottomSpace: number }> {
+  try {
+    const response = await fetch(getConfigByLabId(labId), { cache: "no-store" });
+    if (!response.ok) return { topSpace: 0, bottomSpace: 0 };
+    const payload = await parseApiResponse<{
+      data?: { reportTopSpace?: number; reportBottomSpace?: number };
+    }>(response);
+    return {
+      topSpace: payload.data?.reportTopSpace ?? 0,
+      bottomSpace: payload.data?.reportBottomSpace ?? 0,
+    };
+  } catch {
+    return { topSpace: 0, bottomSpace: 0 };
+  }
+}
 
 async function getPendingTests(patientId: string, labId: number) {
   try {
@@ -91,7 +158,20 @@ export default async function PendingTestsPage({
   const user = await requireUserType("Administrator");
   const { patientId } = await params;
   const { patientName } = await searchParams;
-  const { tests, reportData, error } = await getPendingTests(patientId, user.labId);
+
+  // Fetch report data, patient info, and lab config in parallel
+  const [{ tests, reportData, error }, patientInfo, labConfig] = await Promise.all([
+    getPendingTests(patientId, user.labId),
+    getPatientInfo(patientId),
+    getLabConfig(user.labId),
+  ]);
+
+  // Prefer the full name from the patient API; fall back to the URL search param
+  const resolvedPatientInfo = {
+    ...patientInfo,
+    patientName: patientInfo.patientName || patientName,
+  };
+
   let testsContent: ReactNode;
 
   if (error) {
@@ -106,6 +186,10 @@ export default async function PendingTestsPage({
         tests={tests}
         reportData={reportData!}
         currentUserId={user.userId}
+        labName={user.labName}
+        patientInfo={resolvedPatientInfo}
+        reportTopSpace={labConfig.topSpace}
+        reportBottomSpace={labConfig.bottomSpace}
       />
     );
   }
@@ -126,7 +210,7 @@ export default async function PendingTestsPage({
             Pending reports
           </p>
           <h1 className="mt-1 text-xl font-semibold text-white">
-            {patientName || patientId}
+            {resolvedPatientInfo.patientName || patientId}
           </h1>
         </div>
       </header>

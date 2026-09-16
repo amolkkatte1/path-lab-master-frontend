@@ -1102,6 +1102,30 @@ export async function registerReport({ patientId, testList }: RegisterReportInpu
   }
 }
 
+export async function addReport({ patientId, testList }: RegisterReportInput) {
+  const currentUser = await requireUserType("Administrator");
+
+  try {
+    const response = await fetch(API_ENDPOINTS.addReport, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(
+        { patientId, labId: currentUser.labId, userId: currentUser.userId, testList },
+        ["patientId", "labId", "userId", "testId", "serviceId", "serviceGroupId", "createdBy", "updatedBy"],
+      ),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, error: `The report service returned ${response.status}.` };
+    }
+
+    return { ok: true as const, payload: await parseApiResponse<RegisterReportResponse>(response) };
+  } catch {
+    return { ok: false as const, error: "Unable to connect to the report service." };
+  }
+}
+
 export type SaveReportPayload = {
   reportId: string;
   patientId: string;
