@@ -91,24 +91,26 @@ async function fetchLab(labId: number) {
 
     if (!response.ok) return null;
 
-    const payload = await parseApiResponse<any>(response);
+    const payload = await parseApiResponse<Record<string, unknown>>(response);
     const candidate = payload?.data ?? payload?.result ?? payload?.lab ?? payload;
 
     if (!candidate) return null;
-    if (Array.isArray(candidate)) return candidate[0] ?? null;
-    return typeof candidate === "object" ? candidate : null;
+    if (Array.isArray(candidate)) return (candidate[0] as Record<string, unknown> | null) ?? null;
+    return typeof candidate === "object" ? (candidate as Record<string, unknown>) : null;
   } catch {
     return null;
   }
 }
 
+const dashboardNow = new Date();
+
 // Highlights are computed per-request so we can inject dynamic values
 
-const quickActions: Array<{ icon: typeof FiActivity; label: string }> = [
-  { icon: FiUserPlus, label: "Add Patient" },
-  { icon: TbCurrencyRupee, label: "Billing" },
-  { icon: FiClipboard, label: "Create Test Request" },
-  { icon: FiFileText, label: "Review Reports" },
+const quickActions: Array<{ icon: typeof FiActivity; label: string; href: string }> = [
+  { icon: FiUserPlus, label: "Add Patient", href: "/admin/patients/create" },
+  { icon: TbCurrencyRupee, label: "Billing", href: "/admin" },
+  { icon: FiClipboard, label: "Create Test Request", href: "/admin/patients/create" },
+  { icon: FiFileText, label: "Review Reports", href: "/admin/reports" },
 ];
 
 export default async function AdminDashboard() {
@@ -161,6 +163,10 @@ export default async function AdminDashboard() {
   const subscriptionDetail = subscriptionDate
     ? `Subscription Ends On : ${formatDateLong(subscriptionDate)}`
     : "Requires attention";
+  const subscriptionExpiryDays = subscriptionDate
+    ? Math.ceil((subscriptionDate.getTime() - dashboardNow.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
   const adminHighlights: Array<{
     label: string;
     value: string;
@@ -197,10 +203,7 @@ export default async function AdminDashboard() {
       value: String(lab?.patientCountAlloted ?? lab?.patientCountAllocated ?? "03"),
       detail: subscriptionDetail,
       // blink when expiry <= 5 days
-      blink:
-        subscriptionDate
-          ? Math.ceil((subscriptionDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) <= 5
-          : false,
+      blink: subscriptionExpiryDays !== null ? subscriptionExpiryDays <= 5 : false,
       icon: FiAlertCircle,
       color: "text-rose-300",
     },
@@ -268,9 +271,9 @@ export default async function AdminDashboard() {
               <FiArrowUpRight className="text-slate-500" />
             </div>
             <div className="mt-3 grid gap-1.5">
-              {quickActions.map(({ icon: Icon, label }) => (
+              {quickActions.map(({ icon: Icon, label, href }) => (
                 <Link
-                  href="/admin/patients/create"
+                  href={href}
                   key={label}
                   className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-left text-sm font-medium text-slate-200 transition hover:border-emerald-400/30 hover:bg-emerald-400/10"
                 >
