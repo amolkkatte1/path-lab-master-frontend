@@ -386,6 +386,35 @@ body {
   color: #0f172a;
 }
 
+.report-mobile-action,
+.report-mobile-menu {
+  border-color: #cbd5e1;
+  color: #334155;
+}
+
+@media (max-width: 1023px) {
+  .report-row {
+    border-left: 5px solid #0284c7;
+    padding-right: 4.75rem;
+  }
+
+  .report-meta {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .report-mobile-action {
+    background: #ffffff;
+    border-color: #334155;
+    color: #334155;
+  }
+
+  .report-mobile-menu {
+    border-color: #e2e8f0;
+    color: #1e293b;
+  }
+}
+
 .theme-dark .workspace-shell .report-search-page {
   background: transparent;
   color: #e2e8f0;

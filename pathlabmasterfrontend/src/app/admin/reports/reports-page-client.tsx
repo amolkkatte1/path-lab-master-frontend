@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FiDownload, FiFileText, FiFilter, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import { FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 
 import {
   getReportDoctors,
@@ -256,9 +256,9 @@ export default function ReportsPageClient({
   initialReports,
 }: Readonly<ReportsPageClientProps>) {
   const [rows, setRows] = useState<ReportRow[]>(() => initialReports.map(mapReportApiItem));
-
   const [filters, setFilters] = useState(initialFilters);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [actionMenuRow, setActionMenuRow] = useState<ReportRow | null>(null);
 
   async function handleSearch() {
     const result = await getReportList(filters);
@@ -430,7 +430,7 @@ export default function ReportsPageClient({
 
           <div className="space-y-3 p-2 pb-3">
             {filteredRows.map((row, index) => (
-              <div key={`${row.regNo}-${index}`} className="report-row w-full rounded-xl border p-4 shadow-sm">
+              <div key={`${row.regNo}-${index}`} className="report-row relative w-full rounded-xl border p-4 shadow-sm">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0 flex-1 lg:pr-6">
                     <div className="flex flex-wrap items-center gap-3">
@@ -464,7 +464,16 @@ export default function ReportsPageClient({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 self-center lg:self-start">
+                  <button
+                    type="button"
+                    aria-label={`Open report actions for ${row.patientName}`}
+                    onClick={() => setActionMenuRow(row)}
+                    className="report-mobile-action absolute right-4 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border lg:hidden"
+                  >
+                    <FiChevronRight className="h-6 w-6" />
+                  </button>
+
+                  <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 self-center lg:flex lg:self-start">
                     <button type="button" className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
                       <span className="report-action-icon-wrapper">
                         <FiSearch className="h-4 w-4" />
@@ -496,6 +505,51 @@ export default function ReportsPageClient({
           </div>
         </div>
       </div>
+
+      {actionMenuRow && (
+        <div
+          className="report-mobile-menu-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-5 lg:hidden"
+          role="presentation"
+          onClick={() => setActionMenuRow(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Report actions for ${actionMenuRow.patientName}`}
+            className="report-mobile-menu w-full max-w-sm overflow-hidden rounded-md border bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b px-5 py-4">
+              <span className="flex items-center gap-3 text-xl font-medium">
+                <FiFileText className="h-7 w-7" />
+                PathLab Reports
+              </span>
+              <button
+                type="button"
+                aria-label="Close report actions"
+                onClick={() => setActionMenuRow(null)}
+                className="rounded p-1 text-slate-500 hover:bg-slate-100"
+              >
+                <FiX className="h-5 w-5" />
+              </button>
+            </div>
+            {[
+              { label: "Barcode", icon: FiHash },
+              { label: "Print Reports", icon: FiPrinter },
+              { label: "WhatsApp", icon: FiMessageCircle },
+            ].map(({ label, icon: Icon }) => (
+              <button
+                key={label}
+                type="button"
+                className="flex w-full items-center gap-4 border-b px-5 py-5 text-left text-xl text-slate-700 last:border-b-0 hover:bg-slate-50"
+              >
+                <Icon className="h-8 w-8 text-slate-700" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
