@@ -20,6 +20,7 @@ const initialFilters = {
   lastName: "",
   regNo: "",
   doctor: "",
+  doctorId: "",
 };
 
 export type DoctorOption = ReportDoctorOption;
@@ -36,7 +37,7 @@ function DoctorFilterSelector({
 }: {
   initialDoctors: DoctorOption[];
   value: string;
-  onChange: (value: string) => void;
+  onChange: (selection: { name: string; doctorId: string }) => void;
 }) {
   const [doctorList, setDoctorList] = useState(initialDoctors);
   const [query, setQuery] = useState(value);
@@ -101,7 +102,7 @@ function DoctorFilterSelector({
           onChange={(event) => {
             setQuery(event.target.value);
             setIsDropdownOpen(true);
-            onChange(event.target.value);
+            onChange({ name: event.target.value, doctorId: "" });
           }}
           placeholder="Search doctor"
           className="w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 dark:text-slate-100"
@@ -117,7 +118,7 @@ function DoctorFilterSelector({
               onClick={() => {
                 const nextValue = doctor.doctorName ?? String(doctor.doctorId);
                 setQuery(nextValue);
-                onChange(nextValue);
+                onChange({ name: nextValue, doctorId: String(doctor.doctorId) });
                 setIsDropdownOpen(false);
               }}
               className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
@@ -243,12 +244,12 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
 
 function statusBadgeClass(status: TestStatusLabel) {
   if (status === "SAVED") {
-    return "border border-violet-400/40 bg-violet-500/10 text-violet-200";
+    return "report-status-saved";
   }
-  if (status === "APPROVED" || status === "PRINTED") {
-    return "border border-sky-400/40 bg-sky-500/10 text-sky-200";
+  if (status === "APPROVED") {
+    return "report-status-approved";
   }
-  return "border border-emerald-400/40 bg-emerald-500/10 text-emerald-200";
+  return "report-status-printed";
 }
 
 export default function ReportsPageClient({
@@ -351,6 +352,7 @@ export default function ReportsPageClient({
                 <input
                   value={filters.regNo}
                   onChange={(e) => setFilters((prev) => ({ ...prev, regNo: e.target.value }))}
+                  inputMode="numeric"
                   className="report-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition"
                   placeholder=""
                 />
@@ -363,8 +365,12 @@ export default function ReportsPageClient({
                   <DoctorFilterSelector
                     initialDoctors={initialDoctors}
                     value={filters.doctor}
-                  onChange={(value) => setFilters((prev) => ({ ...prev, doctor: value }))}
-                />
+                    onChange={({ name, doctorId }) => setFilters((prev) => ({
+                      ...prev,
+                      doctor: name,
+                      doctorId,
+                    }))}
+                  />
               </label>
             </div>
 

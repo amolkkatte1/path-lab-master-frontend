@@ -1181,6 +1181,7 @@ export type ReportListFilters = {
   lastName?: string;
   regNo?: string;
   doctor?: string;
+  doctorId?: string;
 };
 
 export type ReportListItem = {
@@ -1248,6 +1249,7 @@ export async function getReportDoctors() {
 export async function getReportList(filters: ReportListFilters = {}) {
   const currentUser = await requireUserType("Administrator");
   const regNo = reportFilterValue(filters.regNo);
+  const doctorId = reportFilterValue(filters.doctorId);
 
   const body = {
     fromDate: reportDate(filters.fromDate),
@@ -1255,9 +1257,11 @@ export async function getReportList(filters: ReportListFilters = {}) {
     labId: currentUser.labId,
     firstName: reportFilterValue(filters.firstName),
     lastName: reportFilterValue(filters.lastName),
-    patientId: regNo && /^\d+$/.test(regNo) ? Number(regNo) : null,
+    // Keep registration numbers as strings until stringifyApiPayload writes the
+    // raw JSON integer. Converting long IDs to Number can change their value.
+    patientId: regNo && /^\d+$/.test(regNo) ? regNo : null,
     doctorName: reportFilterValue(filters.doctor),
-    doctorId: null,
+    doctorId: doctorId && /^\d+$/.test(doctorId) ? doctorId : null,
   };
 
   try {
