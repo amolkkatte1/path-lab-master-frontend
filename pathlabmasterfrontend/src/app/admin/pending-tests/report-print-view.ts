@@ -14,19 +14,33 @@ function formatDate(raw: string) {
   return `${date} ${time}`;
 }
 
-function isOutOfRange(value: string, lower: number | null, upper: number | null): boolean {
+function isOutOfRange(value: string, lower: number | string | null, upper: number | string | null): boolean {
   const num = parseFloat(value);
   if (Number.isNaN(num)) return false;
-  if (lower !== null && num < lower) return true;
-  if (upper !== null && num > upper) return true;
+  const lo = lower !== null && lower !== "" ? Number(lower) : null;
+  const hi = upper !== null && upper !== "" ? Number(upper) : null;
+  if (lo !== null && !Number.isNaN(lo) && num < lo) return true;
+  if (hi !== null && !Number.isNaN(hi) && num > hi) return true;
   return false;
 }
 
-function referenceRange(lower: number | null, upper: number | null): string {
-  if (lower === null && upper === null) return "";
-  if (lower !== null && upper !== null) return `${lower} - ${upper}`;
-  if (lower !== null) return `&gt; ${lower}`;
-  return `&lt; ${upper}`;
+function referenceRange(lower: number | string | null, upper: number | string | null, parameterRange: string | null): string {
+  // If a custom range string is provided, use it as the separator between the two numbers
+  if (parameterRange !== null && parameterRange !== "") {
+    const lo = lower !== null && lower !== "" ? Number(lower) : null;
+    const hi = upper !== null && upper !== "" ? Number(upper) : null;
+    if (lo !== null && !Number.isNaN(lo) && hi !== null && !Number.isNaN(hi))
+      return `${lo} ${parameterRange} ${hi}`;
+    if (lo !== null && !Number.isNaN(lo)) return `&gt; ${lo}`;
+    if (hi !== null && !Number.isNaN(hi)) return `&lt; ${hi}`;
+    return "";
+  }
+  const lo = lower !== null && lower !== "" ? Number(lower) : null;
+  const hi = upper !== null && upper !== "" ? Number(upper) : null;
+  if ((lo === null || Number.isNaN(lo)) && (hi === null || Number.isNaN(hi))) return "";
+  if (lo !== null && !Number.isNaN(lo) && hi !== null && !Number.isNaN(hi)) return `${lo} - ${hi}`;
+  if (lo !== null && !Number.isNaN(lo)) return `&gt; ${lo}`;
+  return `&lt; ${hi}`;
 }
 
 function testSectionHtml(group: PrintTestGroup): string {
@@ -43,33 +57,61 @@ function testSectionHtml(group: PrintTestGroup): string {
   const dataRows = sorted.filter((p) => p.sequence !== 1 && p.sequence !== 2);
 
   const rowsHtml = dataRows.map((p) => {
-    const valueBold  = p.isBold;
+    const valueBold  = p.isBold ?? false;
     const nameBold   = p.isNameBold ?? false;
-    const oor        = isOutOfRange(p.value, p.lowerRange, p.upperRange);
-    const refRange   = referenceRange(p.lowerRange, p.upperRange);
+    const oor        = isOutOfRange(p.value ?? "", p.lowerRange, p.upperRange);
+    const refRange   = referenceRange(p.lowerRange, p.upperRange, p.parameterRange ?? null);
+    const cellBase   = `font-size:13px;padding:2px 0;vertical-align:top;`;
 
-    // Bold section-heading row (parameterName present, no separate value column needed)
-    // e.g. "Differential Leucocytes Counts", "HAEMOGRAM ON CELL COUNTER" if it appears as data
-    if (nameBold && !p.value) {
+    // Description-only parameter — spans all columns, preserves line breaks
+    if (p.isDescriptionParameter) {
+      const text = (p.parameterName || p.value || "").replace(/\\n\n|\\n|\n/g, "<br/>");
       return `<tr>
-        <td colspan="4" style="padding:3px 0;font-weight:700;font-size:13px;">${p.parameterName}</td>
+        <td colspan="4" style="${cellBase}font-style:italic;color:#333;">${text}</td>
       </tr>`;
     }
 
-    const nameStyle  = `font-size:13px;padding:2px 0;${nameBold  ? "font-weight:700;" : ""}`;
-    const valueStyle = `font-size:13px;padding:2px 0;${valueBold ? "font-weight:700;" : ""}${oor ? "background:#ffff00;padding:1px 4px;" : ""}`;
+    // Value-is-description: name in first col, value as paragraph spanning remaining 3 cols
+    if (p.isValueDiscription) {
+      const nameStyle = `${cellBase}${nameBold ? "font-weight:700;" : ""}`;
+      const text = (p.value || "").replace(/\\n\n|\\n|\n/g, "<br/>");
+      return `<tr>
+        <td style="width:38%;${nameStyle}">${p.parameterName || ""}</td>
+        <td colspan="3" style="${cellBase}">${text}</td>
+      </tr>`;
+    }
+
+    // Name-only row (no value required)
+    if (p.isValueRequired === false) {
+      return `<tr>
+        <td colspan="4" style="${cellBase}${nameBold ? "font-weight:700;" : ""}">${p.parameterName || ""}</td>
+      </tr>`;
+    }
+
+    // Bold section-heading row (no value, not a description)
+    if (nameBold && !p.value) {
+      return `<tr>
+        <td colspan="4" style="${cellBase}font-weight:700;">${p.parameterName}</td>
+      </tr>`;
+    }
+
+    const nameStyle  = `${cellBase}${nameBold  ? "font-weight:700;" : ""}`;
+    const tdValueStyle = `${cellBase}`;
+    const valueInner = oor
+      ? `<span style="background:#ffff00;font-weight:700;padding:1px 0px;display:inline-block;">${p.value || ""}</span>`
+      : `<span style="${valueBold ? "font-weight:700;" : ""}">${p.value || ""}</span>`;
 
     return `<tr>
       <td style="width:38%;${nameStyle}">${p.parameterName || ""}</td>
-      <td style="width:18%;${valueStyle}">${p.value || ""}</td>
-      <td style="width:14%;font-size:13px;padding:2px 0;">${p.unit || ""}</td>
-      <td style="width:30%;font-size:13px;padding:2px 0;">${refRange}</td>
+      <td style="width:18%;${tdValueStyle}">${valueInner}</td>
+      <td style="width:14%;${cellBase}">${p.unit || ""}</td>
+      <td style="width:30%;${cellBase}">${refRange}</td>
     </tr>`;
   }).join("");
 
   return `
     <!-- Category heading: centred, bold, all-caps -->
-    ${category ? `<tr><td colspan="4" style="text-align:center;font-weight:700;font-size:13px;padding:10px 0 4px;">${category}</td></tr>` : ""}
+    ${category ? `<tr><td colspan="4" style="text-align:center;font-weight:700;font-size:13px;padding:6px 0 4px;">${category}</td></tr>` : ""}
     <!-- Column header row -->
     <tr style="border-top:1px solid #000;border-bottom:1px solid #000;">
       <td style="font-weight:700;font-size:13px;padding:3px 0;width:38%;">Test Name</td>
@@ -79,12 +121,11 @@ function testSectionHtml(group: PrintTestGroup): string {
     </tr>
     <!-- Test name row -->
     <tr>
-      <td colspan="4" style="font-weight:700;font-size:13px;padding:4px 0 2px;">${testName}</td>
+      <td colspan="4" style="font-weight:700;font-size:13px;padding:4px 0 3px;border-bottom:1px solid #aaa;">${testName}</td>
     </tr>
     ${rowsHtml}
-    <!-- Spacer row between test groups -->
-    <tr><td colspan="4" style="padding:6px 0;border-bottom:1px solid #000;"></td></tr>
-    <tr><td colspan="4" style="padding:4px 0;"></td></tr>
+    <!-- Divider between test groups (no extra vertical padding) -->
+    <tr><td colspan="4" style="padding:0;border-bottom:1px solid #000;"></td></tr>
   `;
 }
 
@@ -93,19 +134,24 @@ export function buildPrintHtml({
   patientInfo,
   reportId,
   createdAt,
+  patientCreatedAt,
   testGroups,
   reportTopSpace,
   reportBottomSpace,
+  includeHeader,
 }: {
   labName: string;
   patientInfo: PatientInfo;
   reportId: string;
   createdAt: string;
+  patientCreatedAt: string;
   testGroups: PrintTestGroup[];
   reportTopSpace: number;
   reportBottomSpace: number;
+  includeHeader?: boolean;
 }): string {
-  const regDate    = formatDate(createdAt);
+  const showHeader = includeHeader !== false;
+  const regDate    = formatDate(patientCreatedAt);
   const reportDate = formatDate(new Date().toISOString());
 
   const patientNameDisplay = patientInfo.patientName || "—";
@@ -130,13 +176,17 @@ export function buildPrintHtml({
     }
     table { border-collapse: collapse; }
     .report-inner {
-      padding-left: 28px;
-      padding-right: 28px;
+      padding-left: 58px;
+      padding-right: 58px;
       padding-top: ${reportTopSpace}%;
       padding-bottom: ${reportBottomSpace}%;
     }
     @media print {
       @page { margin: 0; size: A4; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
     }
   </style>
 </head>
@@ -144,9 +194,9 @@ export function buildPrintHtml({
 <div class="report-inner">
 
   <!-- ── Lab name header ── -->
-  <div style="text-align:center;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px;">
+  ${showHeader ? `<div style="text-align:center;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px;">
     ${labName}
-  </div>
+  </div>` : ""}
 
   <!-- ── Patient info: two-column grid ── -->
   <table style="width:100%;margin-bottom:0;">
@@ -156,17 +206,17 @@ export function buildPrintHtml({
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg No</td>
             <td style="padding-right:8px;">:</td>
-            <td>${reportId}</td>
+            <td style="font-weight:700;">${reportId}</td>
           </tr>
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Name</td>
             <td style="padding-right:8px;">:</td>
-            <td>${patientNameDisplay}</td>
+            <td style="font-weight:700;">${patientNameDisplay}</td>
           </tr>
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Referred Dr</td>
             <td style="padding-right:8px;">:</td>
-            <td>${doctor}</td>
+            <td style="font-weight:700;">${doctor}</td>
           </tr>
         </table>
       </td>
@@ -175,17 +225,17 @@ export function buildPrintHtml({
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Sex / Age</td>
             <td style="padding-right:8px;">:</td>
-            <td>${genderAge || "—"}</td>
+            <td style="font-weight:700;">${genderAge || "—"}</td>
           </tr>
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg Date</td>
             <td style="padding-right:8px;">:</td>
-            <td>${regDate}</td>
+            <td style="font-weight:700;">${regDate}</td>
           </tr>
           <tr>
             <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Report Date</td>
             <td style="padding-right:8px;">:</td>
-            <td>${reportDate}</td>
+            <td style="font-weight:700;">${reportDate}</td>
           </tr>
         </table>
       </td>
@@ -193,7 +243,7 @@ export function buildPrintHtml({
   </table>
 
   <!-- ── Full-width divider below patient info ── -->
-  <div style="border-top:1px solid #000;margin:8px 0 12px;"></div>
+  <div style="border-top:1px solid #000;margin:8px 0 0;"></div>
 
   <!-- ── Test results ── -->
   <table style="width:100%;">

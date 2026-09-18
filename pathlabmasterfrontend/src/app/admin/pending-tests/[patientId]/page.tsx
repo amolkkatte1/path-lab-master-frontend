@@ -42,6 +42,7 @@ type PatientApiData = {
   days?: number | string;
   doctorName?: string;
   mobileNumber?: number | string;
+  createdAt?: string;
 };
 
 type PatientApiResponse = { data?: PatientApiData } | PatientApiData;
@@ -73,6 +74,7 @@ async function getPatientInfo(patientId: string): Promise<PatientInfo> {
       age: ageParts.join(" ") || undefined,
       doctorName: data.doctorName,
       mobileNumber: data.mobileNumber ? String(data.mobileNumber) : undefined,
+      createdAt: data.createdAt,
     };
   } catch {
     return {};

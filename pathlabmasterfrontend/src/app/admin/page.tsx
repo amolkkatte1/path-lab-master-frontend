@@ -36,7 +36,7 @@ async function getPendingPatients(labId: number) {
   } catch {
     return {
       patients: [],
-      error: "Unable to load today&apos;s pending patient queue.",
+      error: "Unable to load today's pending patient queue.",
     };
   }
 }
@@ -240,7 +240,7 @@ export default async function AdminDashboard() {
               <p className="text-sm text-slate-400">{label}</p>
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
-            <p className="mt-3 text-3xl font-semibold text-white">{value}</p>
+            <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
             <p className={`mt-2 text-xs ${color} ${blink ? "blink-red" : ""}`}>{detail}</p>
           </article>
         ))}

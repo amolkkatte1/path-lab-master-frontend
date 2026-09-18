@@ -209,6 +209,11 @@ body {
   color: #ffffff;
 }
 
+.pending-test-parameter-input.is-out-of-range {
+  border-color: #f43f5e;
+  color: #fb7185;
+}
+
 .pending-test-parameter-meta {
   color: #94a3b8;
 }
@@ -245,6 +250,12 @@ body {
 
 .pending-test-dialog-footer {
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pending-test-print-options {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e2e8f0;
 }
 
 .theme-light .workspace-shell .pending-test-dialog {
@@ -288,12 +299,23 @@ body {
   color: #172033;
 }
 
+.theme-light .workspace-shell .pending-test-parameter-input.is-out-of-range {
+  border-color: #e11d48;
+  color: #e11d48;
+}
+
 .theme-light .workspace-shell .pending-test-parameter-meta {
   color: #475569;
 }
 
 .theme-light .workspace-shell .pending-test-dialog-footer {
   border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .pending-test-print-options {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #172033;
 }
 
 .pending-tests-table-head {
