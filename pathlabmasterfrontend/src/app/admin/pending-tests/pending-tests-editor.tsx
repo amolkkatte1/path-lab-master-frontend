@@ -72,12 +72,10 @@ function openPrintWindow(html: string) {
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isMobile) {
-    // Mobile: open report in a new tab so the user can read/share/print manually
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
+    // Mobile: store HTML in sessionStorage and navigate to the report-view
+    // route — this gives a real shareable URL instead of about:blank
+    sessionStorage.setItem("pendingReportHtml", html);
+    window.open("/admin/report-view", "_blank");
     return;
   }
 

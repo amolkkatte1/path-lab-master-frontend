@@ -181,6 +181,13 @@ export function buildPrintHtml({
       padding-top: ${reportTopSpace}%;
       padding-bottom: ${reportBottomSpace}%;
     }
+    @media screen and (max-width: 600px) {
+      body { font-size: 3.2vw; }
+      .report-inner {
+        padding-left: 4vw;
+        padding-right: 4vw;
+      }
+    }
     @media print {
       @page { margin: 0; size: A4; }
       * {
