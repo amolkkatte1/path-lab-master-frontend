@@ -2,7 +2,12 @@
 
 import { redirect } from "next/navigation";
 
-import { API_ENDPOINTS, parseApiResponse, stringifyApiPayload } from "@/lib/api";
+import {
+  API_ENDPOINTS,
+  getDoctorListByLabId,
+  parseApiResponse,
+  stringifyApiPayload,
+} from "@/lib/api";
 
 import {
   clearSessionUser,
@@ -1166,5 +1171,115 @@ export async function saveReport(payload: SaveReportPayload) {
     return { ok: true as const };
   } catch (err) {
     return { ok: false as const, error: `Network error: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+export type ReportListFilters = {
+  fromDate?: string;
+  toDate?: string;
+  firstName?: string;
+  lastName?: string;
+  regNo?: string;
+  doctor?: string;
+  doctorId?: string;
+};
+
+export type ReportListItem = {
+  reportId?: number | string;
+  patientId?: number | string;
+  prefix?: string | null;
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
+  doctorId?: number | string | null;
+  doctorName?: string | null;
+  labId?: number | string;
+  pendingTest?: Record<string, unknown> | null;
+  completedTest?: Record<string, unknown> | null;
+  status?: Record<string, {
+    isSaved?: boolean;
+    isApproved?: boolean;
+    isPrinted?: boolean;
+  }> | null;
+};
+
+export type ReportDoctorOption = {
+  doctorId: number | string;
+  doctorName?: string;
+  doctorMailId?: string;
+  doctorMobileNumber?: number | string;
+  labName?: string;
+  labId?: number | string;
+};
+
+function reportFilterValue(value: string | undefined) {
+  const normalizedValue = value?.trim();
+  return normalizedValue || null;
+}
+
+function reportDate(date?: string) {
+  return date && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? date
+    : new Date().toISOString().slice(0, 10);
+}
+
+export async function getReportDoctors() {
+  const currentUser = await requireUserType("Administrator");
+
+  try {
+    const response = await fetch(getDoctorListByLabId(currentUser.labId), {
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, doctors: [] as ReportDoctorOption[] };
+    }
+
+    const payload = await parseApiResponse<ReportDoctorOption[] | { data?: ReportDoctorOption[] }>(response);
+    return {
+      ok: true as const,
+      doctors: Array.isArray(payload) ? payload : payload.data ?? [],
+    };
+  } catch {
+    return { ok: false as const, doctors: [] as ReportDoctorOption[] };
+  }
+}
+
+export async function getReportList(filters: ReportListFilters = {}) {
+  const currentUser = await requireUserType("Administrator");
+  const regNo = reportFilterValue(filters.regNo);
+  const doctorId = reportFilterValue(filters.doctorId);
+
+  const body = {
+    fromDate: reportDate(filters.fromDate),
+    toDate: reportDate(filters.toDate),
+    labId: currentUser.labId,
+    firstName: reportFilterValue(filters.firstName),
+    lastName: reportFilterValue(filters.lastName),
+    // Keep registration numbers as strings until stringifyApiPayload writes the
+    // raw JSON integer. Converting long IDs to Number can change their value.
+    patientId: regNo && /^\d+$/.test(regNo) ? regNo : null,
+    doctorName: reportFilterValue(filters.doctor),
+    doctorId: doctorId && /^\d+$/.test(doctorId) ? doctorId : null,
+  };
+
+  try {
+    const response = await fetch(API_ENDPOINTS.reportListFilter, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+      body: stringifyApiPayload(body, ["labId", "patientId", "doctorId"]),
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, reports: [] as ReportListItem[] };
+    }
+
+    const payload = await parseApiResponse<{ data?: ReportListItem[] }>(response);
+    return { ok: true as const, reports: payload.data ?? [] };
+  } catch {
+    return { ok: false as const, reports: [] as ReportListItem[] };
   }
 }

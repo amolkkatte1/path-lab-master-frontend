@@ -80,8 +80,8 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
                 Billing
               </span>
             </button>
-            <button
-              type="button"
+            <Link
+              href="/admin/reports"
               aria-label="Review reports"
               title="Review reports"
               className="inline-flex min-w-11 flex-col items-center gap-0.5 rounded-lg border border-white/15 px-2 py-1.5 text-slate-100 transition hover:border-emerald-300/50 hover:bg-emerald-400/15"
@@ -90,7 +90,7 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
               <span className="text-[11px] font-medium leading-none">
                 Reports
               </span>
-            </button>
+            </Link>
             <div className="hidden lg:block">
               <TopbarClock />
             </div>
