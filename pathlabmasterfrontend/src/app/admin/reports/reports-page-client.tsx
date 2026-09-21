@@ -348,7 +348,21 @@ export default function ReportsPageClient({
       includeHeader,
     });
 
-    // Hidden iframe print — same approach as pending-tests-editor
+    // iOS Safari ignores iframe.print() — use new tab instead
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (isIOS) {
+      const win = window.open("", "_blank");
+      if (win) {
+        win.document.open(); win.document.write(html); win.document.close();
+        const tryPrint = () => { try { win.focus(); win.print(); } catch { /* ignore */ } };
+        if (win.document.readyState === "complete") tryPrint();
+        else { win.onload = tryPrint; setTimeout(tryPrint, 800); }
+      }
+      setPrintDialog(null);
+      return;
+    }
+
+    // Desktop + Android: hidden iframe
     const iframe = document.createElement("iframe");
     iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
     document.body.appendChild(iframe);

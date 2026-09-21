@@ -69,8 +69,30 @@ function buildStatusFlags(action: SaveAction): TestStatus {
 }
 
 function openPrintWindow(html: string) {
-  // Use a hidden iframe on all platforms — triggers the native print dialog directly
-  // without opening a visible tab or window.
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  if (isIOS) {
+    // iOS Safari ignores iframe.print() and prints the parent page instead.
+    // Open report in a new tab and print from there.
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    // Give the new tab time to render before triggering print
+    const tryPrint = () => {
+      try { win.focus(); win.print(); } catch { /* ignore */ }
+    };
+    if (win.document.readyState === "complete") {
+      tryPrint();
+    } else {
+      win.onload = tryPrint;
+      setTimeout(tryPrint, 800);
+    }
+    return;
+  }
+
+  // Desktop + Android: hidden iframe, print dialog opens without a visible tab
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
   document.body.appendChild(iframe);
