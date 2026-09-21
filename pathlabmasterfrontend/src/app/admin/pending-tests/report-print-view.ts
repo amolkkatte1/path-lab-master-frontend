@@ -164,7 +164,7 @@ export function buildPrintHtml({
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <meta name="viewport" content="width=800" />
   <title>Report — ${patientNameDisplay}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -173,6 +173,7 @@ export function buildPrintHtml({
       font-size: 13px;
       color: #000;
       background: #fff;
+      height: fit-content;
     }
     table { border-collapse: collapse; }
     .report-inner {
@@ -181,19 +182,14 @@ export function buildPrintHtml({
       padding-top: ${reportTopSpace}%;
       padding-bottom: ${reportBottomSpace}%;
     }
-    @media screen and (max-width: 600px) {
-      body { font-size: 3.2vw; }
-      .report-inner {
-        padding-left: 4vw;
-        padding-right: 4vw;
-      }
-    }
     @media print {
       @page { margin: 0; size: A4; }
       * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
       }
+      /* Hide any floating UI injected by the report-view page */
+      button { display: none !important; }
     }
   </style>
 </head>

@@ -72,14 +72,16 @@ function openPrintWindow(html: string) {
   const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   if (isMobile) {
-    // Mobile: store HTML in sessionStorage and navigate to the report-view
-    // route — this gives a real shareable URL instead of about:blank
-    sessionStorage.setItem("pendingReportHtml", html);
-    window.open("/admin/report-view", "_blank");
+    // Mobile: open report in a new tab
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
     return;
   }
 
-  // Desktop: write into a hidden iframe and call print() — no visible extra tab
+  // Desktop: write into a hidden iframe and call print() directly
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
   document.body.appendChild(iframe);
@@ -91,13 +93,11 @@ function openPrintWindow(html: string) {
   doc.write(html);
   doc.close();
 
-  // Give the iframe time to render then print
   const printAndClean = () => {
     try {
       iframe.contentWindow?.focus();
       iframe.contentWindow?.print();
     } finally {
-      // Remove after a short delay to let the print dialog fully open
       setTimeout(() => document.body.removeChild(iframe), 1000);
     }
   };
@@ -106,7 +106,6 @@ function openPrintWindow(html: string) {
     printAndClean();
   } else {
     iframe.onload = printAndClean;
-    // Fallback in case onload doesn't fire
     setTimeout(printAndClean, 800);
   }
 }

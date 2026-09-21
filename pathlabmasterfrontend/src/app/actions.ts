@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import {
   API_ENDPOINTS,
   getDoctorListByLabId,
+  getPendingReportsByPatientId,
+  getConfigByLabId,
   parseApiResponse,
   stringifyApiPayload,
 } from "@/lib/api";
@@ -1281,5 +1283,111 @@ export async function getReportList(filters: ReportListFilters = {}) {
     return { ok: true as const, reports: payload.data ?? [] };
   } catch {
     return { ok: false as const, reports: [] as ReportListItem[] };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Report view — fetch all data needed to render a shareable report page
+// ---------------------------------------------------------------------------
+
+export type ReportViewData = {
+  reportId: string;
+  patientId: string;
+  labId: string;
+  labName: string;
+  patientName: string;
+  gender: string;
+  age: string;
+  doctorName: string;
+  patientCreatedAt: string;
+  reportCreatedAt: string;
+  reportTopSpace: number;
+  reportBottomSpace: number;
+  completedTests: Record<string, Array<{
+    parameterName: string;
+    value: string | null;
+    sequence: number;
+    dataType: string;
+    unit: string | null;
+    formula: string | null;
+    upperRange: number | null;
+    lowerRange: number | null;
+    isBold: boolean | null;
+    isNameBold: boolean | null;
+    isDescriptionParameter: boolean | null;
+    isValueRequired: boolean | null;
+    isValueDiscription: boolean | null;
+    parameterRange: string | null;
+  }>>;
+};
+
+export async function getReportViewData(
+  patientId: string,
+  labId: number,
+): Promise<{ ok: true; data: ReportViewData } | { ok: false; error: string }> {
+  try {
+    type PatientApiData = {
+      prefix?: string; firstName?: string; middleName?: string; lastName?: string;
+      gender?: string; year?: number | string; month?: number | string;
+      days?: number | string; doctorName?: string; createdAt?: string;
+    };
+    type ReportApiData = {
+      reportId?: string; patientId?: string; labId?: string;
+      completedTest?: Record<string, unknown[]>;
+      createdAt?: string;
+    };
+
+    const [patientRes, reportRes, configRes] = await Promise.all([
+      fetch(API_ENDPOINTS.getPatient, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: stringifyApiPayload({ patientId }, ["patientId"]),
+        cache: "no-store",
+      }),
+      fetch(getPendingReportsByPatientId(patientId, labId), { cache: "no-store" }),
+      fetch(getConfigByLabId(labId), { cache: "no-store" }),
+    ]);
+
+    const [patientPayload, reportPayload, configPayload] = await Promise.all([
+      parseApiResponse<{ data?: PatientApiData } | PatientApiData>(patientRes),
+      parseApiResponse<{ data?: ReportApiData }>(reportRes),
+      parseApiResponse<{ data?: { reportTopSpace?: number; reportBottomSpace?: number } }>(configRes),
+    ]);
+
+    const p = "firstName" in patientPayload
+      ? patientPayload as PatientApiData
+      : (patientPayload as { data?: PatientApiData }).data ?? {};
+
+    const r = reportPayload.data ?? {};
+
+    const nameParts = [p.prefix, p.firstName, p.middleName, p.lastName].filter(Boolean) as string[];
+    const ageParts: string[] = [];
+    if (p.year) ageParts.push(`${p.year}Y`);
+    if (p.month) ageParts.push(`${p.month}M`);
+    if (p.days) ageParts.push(`${p.days}D`);
+
+    // Retrieve lab name from the current session user
+    const sessionUser = await requireUserType("Administrator").catch(() => null);
+
+    return {
+      ok: true,
+      data: {
+        reportId: r.reportId ?? "",
+        patientId: r.patientId ?? patientId,
+        labId: r.labId ?? String(labId),
+        labName: sessionUser?.labName ?? "",
+        patientName: nameParts.join(" "),
+        gender: p.gender ?? "",
+        age: ageParts.join(" "),
+        doctorName: p.doctorName ?? "",
+        patientCreatedAt: p.createdAt ?? "",
+        reportCreatedAt: r.createdAt ?? "",
+        reportTopSpace: configPayload.data?.reportTopSpace ?? 0,
+        reportBottomSpace: configPayload.data?.reportBottomSpace ?? 0,
+        completedTests: (r.completedTest ?? {}) as ReportViewData["completedTests"],
+      },
+    };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Failed to load report" };
   }
 }
