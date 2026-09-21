@@ -69,19 +69,8 @@ function buildStatusFlags(action: SaveAction): TestStatus {
 }
 
 function openPrintWindow(html: string) {
-  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
-  if (isMobile) {
-    // Mobile: open report in a new tab
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    return;
-  }
-
-  // Desktop: write into a hidden iframe and call print() directly
+  // Use a hidden iframe on all platforms — triggers the native print dialog directly
+  // without opening a visible tab or window.
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
   document.body.appendChild(iframe);
