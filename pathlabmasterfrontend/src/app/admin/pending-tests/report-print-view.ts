@@ -164,7 +164,7 @@ export function buildPrintHtml({
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=800" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>Report — ${patientNameDisplay}</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -172,28 +172,87 @@ export function buildPrintHtml({
       font-family: Arial, Helvetica, sans-serif;
       font-size: 13px;
       color: #000;
-      background: #fff;
-      height: fit-content;
+      background: #f1f5f9;
     }
     table { border-collapse: collapse; }
+    /* Fixed-width report card — always 800px, scaled to fit screen */
+    #report-wrap {
+      width: 800px;
+      transform-origin: top left;
+      background: #fff;
+    }
     .report-inner {
       padding-left: 58px;
       padding-right: 58px;
       padding-top: ${reportTopSpace}%;
       padding-bottom: ${reportBottomSpace}%;
     }
+    /* Download bar — hidden when printing */
+    #dl-bar {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #1e293b;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      z-index: 999;
+      font-family: Arial, sans-serif;
+    }
+    #dl-bar span { color: #94a3b8; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #dl-bar button {
+      flex-shrink: 0;
+      background: #2563eb; color: #fff; border: none;
+      border-radius: 8px; padding: 9px 18px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+    }
     @media print {
       @page { margin: 0; size: A4; }
-      * {
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-      }
-      /* Hide any floating UI injected by the report-view page */
-      button { display: none !important; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      #dl-bar { display: none !important; }
+      body { background: #fff; }
+      #report-wrap { transform: none !important; width: 100% !important; }
     }
   </style>
+  <script>
+    // Scale the 800px report to fit the viewport width before first paint
+    (function() {
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+      function applyScale() {
+        var scale = Math.min(1, (window.innerWidth || 800) / 800);
+        var wrap = document.getElementById('report-wrap');
+        if (wrap) {
+          wrap.style.transform = 'scale(' + scale + ')';
+          document.body.style.height = Math.ceil(wrap.offsetHeight * scale) + 'px';
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        applyScale();
+
+        var bar = document.getElementById('dl-bar');
+        if (!bar) return;
+
+        if (isIOS) {
+          // iOS Safari ignores window.print() — guide the user to use Share sheet
+          bar.innerHTML =
+            '<span style="color:#94a3b8;font-size:12px;line-height:1.4;">' +
+              'Tap the Share button &#x2197; in Safari then choose <strong style="color:#fff">Print</strong> or <strong style="color:#fff">Save to Files</strong>' +
+            '</span>';
+        } else {
+          var btn = document.getElementById('dl-btn');
+          if (btn) btn.style.display = 'flex';
+        }
+      });
+
+      window.addEventListener('resize', applyScale);
+    })();
+  </script>
 </head>
 <body>
+<div id="report-wrap">
 <div class="report-inner">
 
   <!-- ── Lab name header ── -->
@@ -260,7 +319,13 @@ export function buildPrintHtml({
     End of Report
   </div>
 
+</div><!-- /report-wrap -->
+
+<div id="dl-bar">
+  <span>Report — ${patientNameDisplay}</span>
+  <button id="dl-btn" onclick="window.print()" style="display:none;">&#8681; Save / Print</button>
 </div>
+
 </body>
 </html>`;
 }
