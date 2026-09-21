@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { FiCheck, FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 
 import {
   getReportDoctors,
   getReportList,
+  getReportViewData,
   type ReportDoctorOption,
   type ReportListItem,
+  type ReportViewData,
 } from "@/app/actions";
+import { buildPrintHtml, type PrintTestGroup } from "@/app/admin/pending-tests/report-print-view";
 
 const today = new Date();
 const formatDateInput = (date: Date) => date.toISOString().slice(0, 10);
@@ -142,6 +145,8 @@ function DoctorFilterSelector({
 type ReportApiItem = ReportListItem;
 
 type ReportRow = {
+  patientId: string;
+  labId: string;
   patientName: string;
   regDate: string;
   type: string;
@@ -225,6 +230,8 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
   const regNo = item.patientId ? String(item.patientId) : item.reportId ? String(item.reportId) : "N/A";
 
   return {
+    patientId: item.patientId ? String(item.patientId) : "",
+    labId: item.labId ? String(item.labId) : "",
     patientName,
     regDate: today.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
     type: "OPD",
@@ -261,6 +268,15 @@ export default function ReportsPageClient({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [actionMenuRow, setActionMenuRow] = useState<ReportRow | null>(null);
 
+  // Print dialog state
+  type PrintDialogState = { row: ReportRow; data: ReportViewData } | null;
+  const [printDialog, setPrintDialog] = useState<PrintDialogState>(null);
+  const [printLoading, setPrintLoading] = useState(false);
+  const [printError, setPrintError] = useState<string | null>(null);
+  const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
+  const [includeHeader, setIncludeHeader] = useState(false);
+  const printingRef = useRef(false);
+
   async function handleSearch() {
     const result = await getReportList(filters);
     setRows(result.reports.map(mapReportApiItem));
@@ -278,10 +294,79 @@ export default function ReportsPageClient({
 
   const clearFilters = async () => {
     setFilters(initialFilters);
-
     const result = await getReportList(initialFilters);
     setRows(result.reports.map(mapReportApiItem));
   };
+
+  async function openPrintDialog(row: ReportRow) {
+    if (!row.patientId || !row.labId) return;
+    setActionMenuRow(null);
+    setPrintError(null);
+    setPrintLoading(true);
+    const result = await getReportViewData(row.patientId, row.labId);
+    setPrintLoading(false);
+    if (!result.ok) { setPrintError(result.error); return; }
+    const completedKeys = Object.keys(result.data.completedTests);
+    setSelectedTests(new Set(completedKeys));
+    setIncludeHeader(false);
+    setPrintDialog({ row, data: result.data });
+  }
+
+  function doPrint() {
+    if (!printDialog || printingRef.current) return;
+    const { data } = printDialog;
+    const testGroups: PrintTestGroup[] = Object.entries(data.completedTests)
+      .filter(([key]) => selectedTests.has(key))
+      .map(([key, parameters]) => ({
+        key,
+        code: key.replace(/_\d+$/, ""),
+        parameters,
+      }))
+      .sort((a, b) => {
+        const isCbc = (code: string) => /cbc|haemogram/i.test(code);
+        if (isCbc(a.code) && !isCbc(b.code)) return -1;
+        if (!isCbc(a.code) && isCbc(b.code)) return 1;
+        return 0;
+      });
+    if (testGroups.length === 0) return;
+
+    const html = buildPrintHtml({
+      labName: data.labName,
+      patientInfo: {
+        patientName: data.patientName,
+        gender: data.gender,
+        age: data.age,
+        doctorName: data.doctorName,
+        createdAt: data.patientCreatedAt,
+      },
+      reportId: data.reportId,
+      createdAt: data.reportCreatedAt,
+      patientCreatedAt: data.patientCreatedAt,
+      testGroups,
+      reportTopSpace: data.reportTopSpace,
+      reportBottomSpace: data.reportBottomSpace,
+      includeHeader,
+    });
+
+    // Hidden iframe print — same approach as pending-tests-editor
+    const iframe = document.createElement("iframe");
+    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
+    document.body.appendChild(iframe);
+    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (!doc) { document.body.removeChild(iframe); return; }
+    doc.open(); doc.write(html); doc.close();
+    printingRef.current = true;
+    const cleanup = () => {
+      setTimeout(() => { document.body.removeChild(iframe); printingRef.current = false; }, 1000);
+    };
+    if (iframe.contentDocument?.readyState === "complete") {
+      iframe.contentWindow?.focus(); iframe.contentWindow?.print(); cleanup();
+    } else {
+      iframe.onload = () => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); cleanup(); };
+      setTimeout(() => { if (printingRef.current) { iframe.contentWindow?.print(); cleanup(); } }, 800);
+    }
+    setPrintDialog(null);
+  }
 
   return (
     <div className="report-search-page min-h-screen w-full">
@@ -486,7 +571,7 @@ export default function ReportsPageClient({
                       </span>
                       <span>WhatsApp</span>
                     </button>
-                    <button type="button" className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
+                    <button type="button" onClick={() => openPrintDialog(row)} className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
                       <span className="report-action-icon-wrapper">
                         <FiPrinter className="h-4 w-4" />
                       </span>
@@ -512,8 +597,7 @@ export default function ReportsPageClient({
         </div>
       </div>
 
-      {actionMenuRow && (
-        <div
+      {actionMenuRow && (        <div
           className="report-mobile-menu-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-5 lg:hidden"
           role="presentation"
           onClick={() => setActionMenuRow(null)}
@@ -540,19 +624,123 @@ export default function ReportsPageClient({
               </button>
             </div>
             {[
-              { label: "Barcode", icon: FiHash },
-              { label: "Print Reports", icon: FiPrinter },
-              { label: "WhatsApp", icon: FiMessageCircle },
-            ].map(({ label, icon: Icon }) => (
+              { label: "Barcode", icon: FiHash, onClick: undefined },
+              { label: "Print Reports", icon: FiPrinter, onClick: () => openPrintDialog(actionMenuRow) },
+              { label: "WhatsApp", icon: FiMessageCircle, onClick: undefined },
+            ].map(({ label, icon: Icon, onClick }) => (
               <button
                 key={label}
                 type="button"
+                onClick={onClick}
                 className="flex w-full items-center gap-4 border-b px-5 py-5 text-left text-xl text-slate-700 last:border-b-0 hover:bg-slate-50"
               >
                 <Icon className="h-8 w-8 text-slate-700" />
                 {label}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Print loading overlay */}
+      {printLoading && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/15 bg-slate-900 px-6 py-5 text-white shadow-2xl">
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+            <span className="text-sm font-medium">Loading report…</span>
+          </div>
+        </div>
+      )}
+
+      {/* Print error toast */}
+      {printError && (
+        <div className="fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-5 py-3 text-sm text-rose-300 shadow-xl">
+          {printError}
+          <button type="button" onClick={() => setPrintError(null)} className="ml-3 underline">Dismiss</button>
+        </div>
+      )}
+
+      {/* Print options popup */}
+      {printDialog && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Print options"
+        >
+          <div className="pending-test-dialog w-full max-w-sm overflow-hidden rounded-2xl border shadow-2xl">
+            <div className="pending-test-dialog-header flex items-center justify-between border-b px-5 py-4 rounded-t-2xl">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Print Report</p>
+                <h3 className="mt-0.5 text-base font-semibold text-white">{printDialog.row.patientName}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPrintDialog(null)}
+                aria-label="Close"
+                className="pending-test-dialog-close rounded-full border p-1.5 transition"
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="space-y-1 px-5 py-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Select tests to print</p>
+              {Object.keys(printDialog.data.completedTests).length === 0 ? (
+                <p className="text-sm text-slate-400">No completed tests found.</p>
+              ) : (
+                Object.keys(printDialog.data.completedTests).map((key) => {
+                  const displayName = key.replace(/_\d+$/, "");
+                  const checked = selectedTests.has(key);
+                  return (
+                    <label key={key} className="flex cursor-pointer items-center gap-3 rounded-lg p-2 text-sm font-medium hover:bg-white/5 select-none">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => setSelectedTests((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(key)) next.delete(key); else next.add(key);
+                          return next;
+                        })}
+                        className="h-4 w-4 accent-emerald-500"
+                      />
+                      {displayName}
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="border-t border-white/10 px-5 py-3">
+              <label className="flex cursor-pointer items-center gap-3 text-sm font-medium select-none">
+                <input
+                  type="checkbox"
+                  checked={includeHeader}
+                  onChange={(e) => setIncludeHeader(e.target.checked)}
+                  className="h-4 w-4 accent-emerald-500"
+                />
+                Include Header
+              </label>
+            </div>
+
+            <div className="pending-test-dialog-footer flex items-center justify-end gap-2 border-t px-5 py-4">
+              <button
+                type="button"
+                onClick={() => setPrintDialog(null)}
+                className="pending-test-dialog-close-button rounded-xl border px-4 py-2 text-sm font-semibold transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={doPrint}
+                disabled={selectedTests.size === 0}
+                className="flex items-center gap-2 rounded-xl border border-blue-500/50 bg-blue-600/60 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40"
+              >
+                <FiPrinter className="shrink-0" />
+                Print
+              </button>
+            </div>
           </div>
         </div>
       )}

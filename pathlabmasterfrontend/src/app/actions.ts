@@ -1323,7 +1323,7 @@ export type ReportViewData = {
 
 export async function getReportViewData(
   patientId: string,
-  labId: number,
+  labId: string,
 ): Promise<{ ok: true; data: ReportViewData } | { ok: false; error: string }> {
   try {
     type PatientApiData = {
@@ -1374,7 +1374,7 @@ export async function getReportViewData(
       data: {
         reportId: r.reportId ?? "",
         patientId: r.patientId ?? patientId,
-        labId: r.labId ?? String(labId),
+        labId: r.labId ?? labId,
         labName: sessionUser?.labName ?? "",
         patientName: nameParts.join(" "),
         gender: p.gender ?? "",

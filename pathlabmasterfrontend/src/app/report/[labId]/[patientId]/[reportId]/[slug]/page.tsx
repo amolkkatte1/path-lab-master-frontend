@@ -17,7 +17,7 @@ export default async function ReportPage({ params, searchParams }: PageParams) {
   const { header } = await searchParams;
   const includeHeader = header === "1";
 
-  const result = await getReportViewData(patientId, Number(labId));
+  const result = await getReportViewData(patientId, labId);
 
   if (!result.ok) {
     return (
