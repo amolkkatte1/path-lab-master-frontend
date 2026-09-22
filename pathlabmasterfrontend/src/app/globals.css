@@ -416,21 +416,53 @@ body {
 }
 
 .report-mobile-action,
+.report-action-divider,
 .report-mobile-menu {
   border-color: #cbd5e1;
   color: #334155;
 }
 
-@media (max-width: 1023px) {
-  .report-row {
-    border-left: 5px solid #0284c7;
-    padding-right: 4.75rem;
-  }
+.report-mobile-menu {
+  background: #ffffff;
+}
 
-  .report-meta {
-    flex-direction: column;
-    gap: 0.25rem;
-  }
+.report-mobile-menu-header {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+}
+
+.report-mobile-menu-name {
+  color: #0f172a;
+}
+
+.report-mobile-menu-close {
+  border-color: #cbd5e1;
+  color: #64748b;
+  background: transparent;
+}
+
+.report-mobile-menu-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.report-mobile-menu-item {
+  border-color: #e2e8f0;
+  color: #1e293b;
+  background: transparent;
+}
+
+.report-mobile-menu-item:hover {
+  background: #f1f5f9;
+}
+
+.report-mobile-menu-icon {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+}
+
+@media (max-width: 1023px) {
 
   .report-mobile-action {
     background: #ffffff;
@@ -495,6 +527,53 @@ body {
   background: rgba(15, 23, 42, 0.35);
   border-color: rgba(148, 163, 184, 0.2);
   box-shadow: 0 2px 8px rgba(2, 6, 23, 0.18);
+}
+
+.theme-dark .workspace-shell .report-action-divider,
+.theme-dark .workspace-shell .report-mobile-action {
+  border-color: rgba(148, 163, 184, 0.15);
+  color: #94a3b8;
+  background: transparent;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu {
+  background: #0f172a;
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-header {
+  border-color: rgba(148, 163, 184, 0.15);
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-name {
+  color: #f1f5f9;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-close {
+  border-color: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-item {
+  border-color: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
+}
+
+.theme-dark .workspace-shell .report-mobile-menu-icon {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
 }
 
 .theme-dark .workspace-shell .report-action-button {

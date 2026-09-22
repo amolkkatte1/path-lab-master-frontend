@@ -312,7 +312,7 @@ export default function ReportsPageClient({
     setPrintDialog({ row, data: result.data });
   }
 
-  function doPrint() {
+  function doPrint(mode: "individual" | "grouped") {
     if (!printDialog || printingRef.current) return;
     const { data } = printDialog;
     const testGroups: PrintTestGroup[] = Object.entries(data.completedTests)
@@ -346,6 +346,7 @@ export default function ReportsPageClient({
       reportTopSpace: data.reportTopSpace,
       reportBottomSpace: data.reportBottomSpace,
       includeHeader,
+      printMode: mode,
     });
 
     // iOS Safari ignores iframe.print() — use new tab instead
@@ -533,86 +534,92 @@ export default function ReportsPageClient({
             Showing {filteredRows.length} of {rows.length} records.
           </div>
 
-          <div className="space-y-3 p-2 pb-3">
+          <div className="divide-y divide-white/8 px-0">
             {filteredRows.map((row, index) => (
-              <div key={`${row.regNo}-${index}`} className="report-row relative w-full rounded-xl border p-4 shadow-sm">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0 flex-1 lg:pr-6">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="text-base font-semibold text-white">{row.patientName}</span>
-                    </div>
+              <div key={`${row.regNo}-${index}`} className="report-row flex items-stretch gap-0">
 
-                    <div className="report-meta mt-3 flex flex-wrap gap-x-7 gap-y-2 text-sm">
-                      <span>Reg. Date: {row.regDate}</span>
-                      <span>Type: {row.type}</span>
-                      <span>Ref. Doctor: {row.doctor}</span>
-                    </div>
+                {/* ── Info block ── */}
+                <div className="min-w-0 flex-1 px-4 py-3">
 
-                    <div className="report-meta mt-2 flex flex-wrap gap-x-7 gap-y-2 text-sm">
-                      <span>Reg. No.: {row.regNo}</span>
-                      <span>{row.ccNo}</span>
-                    </div>
-
-                    <div className="mt-3 space-y-2">
-                      {row.tests.length === 0 ? (
-                        <div className="report-test-name text-base font-medium">No tests available</div>
-                      ) : row.tests.map((test) => (
-                        <div key={test.name} className="flex flex-wrap items-center gap-2">
-                          <span className="report-test-name text-base font-medium">Test: {test.name}</span>
-                          {test.status && (
-                            <span className={`rounded-full px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${statusBadgeClass(test.status)}`}>
-                              {test.status}
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
+                  {/* Row 1: name + bill pending badge */}
+                  <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <span className="report-test-name text-sm font-semibold leading-tight">
+                      {row.patientName}
+                    </span>
+                    <span className="shrink-0 rounded border border-rose-400/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-400">
+                      Bill Pending
+                    </span>
                   </div>
 
-                  <button
-                    type="button"
-                    aria-label={`Open report actions for ${row.patientName}`}
-                    onClick={() => setActionMenuRow(row)}
-                    className="report-mobile-action absolute right-4 top-1/2 inline-flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border lg:hidden"
-                  >
-                    <FiChevronRight className="h-6 w-6" />
-                  </button>
+                  {/* Row 2: date / type / doctor */}
+                  <div className="report-meta mt-0.5 flex flex-wrap gap-x-5 gap-y-0 text-xs leading-5">
+                    <span><b>Reg. Date:</b> {row.regDate}</span>
+                    <span><b>Type:</b> {row.type}</span>
+                    <span><b>Ref. Doctor:</b> {row.doctor}</span>
+                  </div>
 
-                  <div className="hidden shrink-0 flex-wrap items-center justify-end gap-2 self-center lg:flex lg:self-start">
-                    <button type="button" className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
-                      <span className="report-action-icon-wrapper">
-                        <FiSearch className="h-4 w-4" />
+                  {/* Row 3: reg no / cc */}
+                  <div className="report-meta flex flex-wrap gap-x-5 gap-y-0 text-xs leading-5">
+                    <span><b>Reg. No.:</b> {row.regNo}</span>
+                    <span><b>CC:</b> N/A</span>
+                  </div>
+
+                  {/* Row 4: tests */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                    {row.tests.length === 0 ? (
+                      <span className="report-meta text-xs italic">No tests</span>
+                    ) : row.tests.map((test) => (
+                      <span key={test.name} className="report-meta text-xs">
+                        <b>Test:</b> {test.name}
+                        {test.status && (
+                          <span className={`ml-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${statusBadgeClass(test.status)}`}>
+                            {test.status}
+                          </span>
+                        )}
                       </span>
-                      <span>WhatsApp</span>
-                    </button>
-                    <button type="button" onClick={() => openPrintDialog(row)} className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
-                      <span className="report-action-icon-wrapper">
-                        <FiPrinter className="h-4 w-4" />
-                      </span>
-                      <span>Print Reports</span>
-                    </button>
-                    <button type="button" className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
-                      <span className="report-action-icon-wrapper">
-                        <FiX className="h-4 w-4" />
-                      </span>
-                      <span>Barcode</span>
-                    </button>
-                    <button type="button" className="report-action-button flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-1.5 text-[11px] font-medium transition">
-                      <span className="report-action-icon-wrapper">
-                        <FiFileText className="h-4 w-4" />
-                      </span>
-                      <span>PathLab Reports</span>
-                    </button>
+                    ))}
                   </div>
                 </div>
+
+                {/* ── Action buttons (desktop) ── */}
+                <div className="report-action-divider hidden shrink-0 items-center gap-1 px-3 sm:flex">
+                  <button type="button" className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
+                    <span className="report-action-icon-wrapper"><FiMessageCircle className="h-4 w-4" /></span>
+                    <span>WhatsApp</span>
+                  </button>
+                  <button type="button" onClick={() => openPrintDialog(row)} className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
+                    <span className="report-action-icon-wrapper"><FiPrinter className="h-4 w-4" /></span>
+                    <span>Print Reports</span>
+                  </button>
+                  <button type="button" className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
+                    <span className="report-action-icon-wrapper"><FiHash className="h-4 w-4" /></span>
+                    <span>Barcode</span>
+                  </button>
+                  <button type="button" className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
+                    <span className="report-action-icon-wrapper"><FiFileText className="h-4 w-4" /></span>
+                    <span>PathLab Reports</span>
+                  </button>
+                </div>
+
+                {/* ── Mobile chevron ── */}
+                <button
+                  type="button"
+                  aria-label={`Actions for ${row.patientName}`}
+                  onClick={() => setActionMenuRow(row)}
+                  className="report-mobile-action flex shrink-0 items-center px-3 text-slate-400 transition hover:bg-white/5 hover:text-white sm:hidden"
+                >
+                  <FiChevronRight className="h-5 w-5" />
+                </button>
+
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {actionMenuRow && (        <div
-          className="report-mobile-menu-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-5 lg:hidden"
+      {actionMenuRow && (
+        <div
+          className="report-mobile-menu-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-5 backdrop-blur-sm lg:hidden"
           role="presentation"
           onClick={() => setActionMenuRow(null)}
         >
@@ -620,35 +627,45 @@ export default function ReportsPageClient({
             role="dialog"
             aria-modal="true"
             aria-label={`Report actions for ${actionMenuRow.patientName}`}
-            className="report-mobile-menu w-full max-w-sm overflow-hidden rounded-md border bg-white shadow-2xl"
+            className="report-mobile-menu w-full max-w-sm overflow-hidden rounded-2xl border shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b px-5 py-4">
-              <span className="flex items-center gap-3 text-xl font-medium">
-                <FiFileText className="h-7 w-7" />
-                PathLab Reports
-              </span>
+            {/* Header */}
+            <div className="report-mobile-menu-header flex items-center justify-between border-b px-5 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+                  Report Actions
+                </p>
+                <p className="report-mobile-menu-name mt-0.5 text-base font-semibold">
+                  {actionMenuRow.patientName}
+                </p>
+              </div>
               <button
                 type="button"
-                aria-label="Close report actions"
+                aria-label="Close"
                 onClick={() => setActionMenuRow(null)}
-                className="rounded p-1 text-slate-500 hover:bg-slate-100"
+                className="report-mobile-menu-close rounded-full border p-1.5 transition"
               >
-                <FiX className="h-5 w-5" />
+                <FiX className="h-4 w-4" />
               </button>
             </div>
+
+            {/* Action rows */}
             {[
               { label: "Barcode", icon: FiHash, onClick: undefined },
               { label: "Print Reports", icon: FiPrinter, onClick: () => openPrintDialog(actionMenuRow) },
               { label: "WhatsApp", icon: FiMessageCircle, onClick: undefined },
+              { label: "PathLab Reports", icon: FiFileText, onClick: undefined },
             ].map(({ label, icon: Icon, onClick }) => (
               <button
                 key={label}
                 type="button"
                 onClick={onClick}
-                className="flex w-full items-center gap-4 border-b px-5 py-5 text-left text-xl text-slate-700 last:border-b-0 hover:bg-slate-50"
+                className="report-mobile-menu-item flex w-full items-center gap-4 border-b px-5 py-4 text-left text-base font-medium transition last:border-b-0"
               >
-                <Icon className="h-8 w-8 text-slate-700" />
+                <span className="report-mobile-menu-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border">
+                  <Icon className="h-5 w-5" />
+                </span>
                 {label}
               </button>
             ))}
@@ -747,7 +764,16 @@ export default function ReportsPageClient({
               </button>
               <button
                 type="button"
-                onClick={doPrint}
+                onClick={() => doPrint("grouped")}
+                disabled={selectedTests.size === 0}
+                className="flex items-center gap-2 rounded-xl border border-slate-500/50 bg-slate-700/60 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-40"
+              >
+                <FiPrinter className="shrink-0" />
+                Print Group
+              </button>
+              <button
+                type="button"
+                onClick={() => doPrint("individual")}
                 disabled={selectedTests.size === 0}
                 className="flex items-center gap-2 rounded-xl border border-blue-500/50 bg-blue-600/60 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-600 disabled:opacity-40"
               >
