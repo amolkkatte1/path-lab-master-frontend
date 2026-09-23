@@ -347,31 +347,16 @@ export default function ReportsPageClient({
       includeHeader,
     };
 
-    // iOS Safari ignores CSS page breaks on tbody — build one HTML per test for individual mode
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
-    if (isIOS && mode === "individual") {
-      for (const group of testGroups) {
-        const pageHtml = buildPrintHtml({
-          ...commonPrintArgs,
-          testGroups: [group],
-          printMode: "individual",
-        });
-        const win = window.open("", "_blank");
-        if (!win) continue;
-        win.document.open(); win.document.write(pageHtml); win.document.close();
-        const tryPrint = () => { try { win.focus(); win.print(); } catch { /* ignore */ } };
-        if (win.document.readyState === "complete") tryPrint();
-        else { win.onload = tryPrint; setTimeout(tryPrint, 800); }
-      }
-      setPrintDialog(null);
-      return;
-    }
-
-    const html = buildPrintHtml({ ...commonPrintArgs, testGroups, printMode: mode });
+    const html = buildPrintHtml({
+      ...commonPrintArgs,
+      testGroups,
+      printMode: mode,
+      isIOS,
+    });
 
     if (isIOS) {
-      // grouped mode on iOS — single tab
       const win = window.open("", "_blank");
       if (win) {
         win.document.open(); win.document.write(html); win.document.close();

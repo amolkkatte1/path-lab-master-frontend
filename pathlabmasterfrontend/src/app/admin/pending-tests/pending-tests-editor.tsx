@@ -70,59 +70,35 @@ function buildStatusFlags(action: SaveAction): TestStatus {
 
 function openPrintWindow(html: string | string[]) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const pages = Array.isArray(html) ? html : [html];
+  const singleHtml = Array.isArray(html) ? html[0] : html;
 
   if (isIOS) {
-    // iOS Safari ignores iframe.print() and page-break CSS on tbody.
-    // Each page opens in its own tab so the user can print each individually.
-    for (const page of pages) {
-      const win = window.open("", "_blank");
-      if (!win) continue;
-      win.document.open();
-      win.document.write(page);
-      win.document.close();
-      const tryPrint = () => {
-        try { win.focus(); win.print(); } catch { /* ignore */ }
-      };
-      if (win.document.readyState === "complete") {
-        tryPrint();
-      } else {
-        win.onload = tryPrint;
-        setTimeout(tryPrint, 800);
-      }
-    }
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.open();
+    win.document.write(singleHtml);
+    win.document.close();
+    const tryPrint = () => { try { win.focus(); win.print(); } catch { /* ignore */ } };
+    if (win.document.readyState === "complete") tryPrint();
+    else { win.onload = tryPrint; setTimeout(tryPrint, 800); }
     return;
   }
 
-  // Desktop + Android: hidden iframe, print dialog opens without a visible tab
-  // All pages are in a single HTML document using CSS page breaks.
-  const singleHtml = pages[0]; // already combined for non-iOS
+  // Desktop + Android: hidden iframe
   const iframe = document.createElement("iframe");
   iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
   document.body.appendChild(iframe);
-
   const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
   if (!doc) { document.body.removeChild(iframe); return; }
-
   doc.open();
   doc.write(singleHtml);
   doc.close();
-
   const printAndClean = () => {
-    try {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-    } finally {
-      setTimeout(() => document.body.removeChild(iframe), 1000);
-    }
+    try { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); }
+    finally { setTimeout(() => document.body.removeChild(iframe), 1000); }
   };
-
-  if (iframe.contentDocument?.readyState === "complete") {
-    printAndClean();
-  } else {
-    iframe.onload = printAndClean;
-    setTimeout(printAndClean, 800);
-  }
+  if (iframe.contentDocument?.readyState === "complete") printAndClean();
+  else { iframe.onload = printAndClean; setTimeout(printAndClean, 800); }
 }
 
 export function PendingTestsEditor({
@@ -254,6 +230,7 @@ export function PendingTestsEditor({
           reportTopSpace,
           reportBottomSpace,
           includeHeader,
+          isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
         });
 
         openPrintWindow(html);

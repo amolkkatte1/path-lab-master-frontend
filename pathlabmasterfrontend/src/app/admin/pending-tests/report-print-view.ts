@@ -149,6 +149,7 @@ export function buildPrintHtml({
   reportBottomSpace,
   includeHeader,
   printMode,
+  isIOS = false,
 }: {
   labName: string;
   patientInfo: PatientInfo;
@@ -160,6 +161,7 @@ export function buildPrintHtml({
   reportBottomSpace: number;
   includeHeader?: boolean;
   printMode?: "individual" | "grouped";
+  isIOS?: boolean;
 }): string {
   const showHeader = includeHeader !== false;
   const mode = printMode ?? "individual";
@@ -169,6 +171,30 @@ export function buildPrintHtml({
   const patientNameDisplay = patientInfo.patientName || "—";
   const genderAge  = [patientInfo.gender, patientInfo.age].filter(Boolean).join(" / ");
   const doctor     = patientInfo.doctorName ? `Dr. ${patientInfo.doctorName}` : "—";
+
+  // Shared patient header block (used in both iOS and standard paths)
+  const patientHeaderHtml = `
+    ${showHeader ? `<div style="text-align:center;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px;">${labName}</div>` : ""}
+    <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
+      <tr>
+        <td style="width:50%;vertical-align:top;padding-bottom:2px;">
+          <table>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg No</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${reportId}</td></tr>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Name</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${patientNameDisplay}</td></tr>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Referred Dr</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${doctor}</td></tr>
+          </table>
+        </td>
+        <td style="width:50%;vertical-align:top;">
+          <table>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Sex / Age</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${genderAge || "—"}</td></tr>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg Date</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${regDate}</td></tr>
+            <tr><td style="font-weight:700;white-space:nowrap;padding-right:4px;">Report Date</td><td style="padding-right:8px;">:</td><td style="font-weight:700;">${reportDate}</td></tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+    <div style="border-top:1px solid #000;margin:8px 0 0;"></div>
+  `;
 
   // In grouped mode, sort tests by category so same-category tests are consecutive.
   // HAEMATOLOGY/CBC always comes first, then remaining categories alphabetically.
@@ -225,6 +251,72 @@ export function buildPrintHtml({
     return testSectionHtml(g, mode, isLast, isFirst, showCategory);
   }).join("");
 
+  // ── iOS-specific layout ──
+  // iOS Safari respects page-break-after on block <div> but not on <tbody>.
+  // Each "page" is a self-contained div with the patient header + top/bottom spacing.
+  if (isIOS) {
+    const pageStyle = `padding: ${reportTopSpace}% 58px ${reportBottomSpace}%; background:#fff;`;
+    const breakStyle = mode === "individual" ? "page-break-after:always;break-after:page;" : "page-break-inside:avoid;break-inside:avoid;";
+
+    const iosPages = orderedGroups.map((g, i) => {
+      const isLast = i === orderedGroups.length - 1;
+      const isFirstG = i === 0;
+      let showCategory = true;
+      if (mode === "grouped" && i > 0) {
+        const prevSorted = [...orderedGroups[i - 1].parameters].sort((a, b) => a.sequence - b.sequence);
+        const prevCatParam = prevSorted.find((p) => p.sequence === 1);
+        const prevCategory = prevCatParam?.value?.trim() || prevCatParam?.parameterName?.trim() || "";
+        const curSorted = [...g.parameters].sort((a, b) => a.sequence - b.sequence);
+        const curCatParam = curSorted.find((p) => p.sequence === 1);
+        const curCategory = curCatParam?.value?.trim() || curCatParam?.parameterName?.trim() || "";
+        if (curCategory && curCategory === prevCategory) showCategory = false;
+      }
+
+      const sectionHtml = testSectionHtml(g, mode, isLast, isFirstG, showCategory);
+
+      if (mode === "individual") {
+        // Each test = its own full page with header repeated
+        const breakAfter = isLast ? "" : "page-break-after:always;break-after:page;";
+        return `<div style="${pageStyle}${breakAfter}">
+          ${patientHeaderHtml}
+          <table style="width:100%;border-collapse:collapse;">${sectionHtml}</table>
+          <div style="text-align:center;margin-top:5px;font-size:13px;font-weight:700;">End of ${(() => {
+            const sorted = [...g.parameters].sort((a, b) => a.sequence - b.sequence);
+            const p = sorted.find((x) => x.sequence === 2);
+            return p?.parameterName?.trim() || p?.value?.trim() || g.code;
+          })()}</div>
+        </div>`;
+      }
+      return sectionHtml;
+    }).join("");
+
+    if (mode === "grouped") {
+      const groupedBody = `<div style="${pageStyle}page-break-inside:avoid;break-inside:avoid;">
+        ${patientHeaderHtml}
+        <table style="width:100%;border-collapse:collapse;">${iosPages}</table>
+        <div style="text-align:center;margin-top:5px;font-size:13px;font-weight:700;">End of Report</div>
+      </div>`;
+
+      return `<!DOCTYPE html><html lang="en"><head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+        <title>Report — ${patientNameDisplay}</title>
+        <style>* { box-sizing:border-box;margin:0;padding:0; } body { font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#000;background:#fff; } table { border-collapse:collapse; }
+        @media print { @page { margin:0;size:A4; } * { -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important; } }</style>
+      </head><body>${groupedBody}</body></html>`;
+    }
+
+    return `<!DOCTYPE html><html lang="en"><head>
+      <meta charset="UTF-8"/>
+      <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+      <title>Report — ${patientNameDisplay}</title>
+      <style>* { box-sizing:border-box;margin:0;padding:0; } body { font-family:Arial,Helvetica,sans-serif;font-size:13px;color:#000;background:#fff; } table { border-collapse:collapse; }
+      @media print { @page { margin:0;size:A4; } * { -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important; } }</style>
+    </head><body>${iosPages}</body></html>`;
+  }
+
+  // ── Standard layout (desktop + Android) ──
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -249,7 +341,6 @@ export function buildPrintHtml({
       padding-left: 58px;
       padding-right: 58px;
     }
-    /* Download bar — hidden when printing */
     #dl-bar {
       position: fixed;
       bottom: 0; left: 0; right: 0;
@@ -270,18 +361,12 @@ export function buildPrintHtml({
       font-size: 14px; font-weight: 600; cursor: pointer;
     }
     @media print {
-      @page {
-        margin: 0;
-        size: A4;
-        margin-bottom: ${reportBottomSpace}%;
-      }
+      @page { margin: 0; size: A4; margin-bottom: ${reportBottomSpace}%; }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       #dl-bar { display: none !important; }
       body { background: #fff; }
       #report-wrap { transform: none !important; width: 100% !important; }
-      /* iOS Safari: use -webkit- prefixed properties */
       tbody { -webkit-column-break-inside: avoid; }
-      /* Ensure thead repeats on every page */
       thead { display: table-header-group; }
     }
   </style>
@@ -316,77 +401,23 @@ export function buildPrintHtml({
 <div class="report-inner">
 
   <table style="width:100%;border-collapse:collapse;">
-
-    <!-- ── THEAD: repeats on every printed page ── -->
     <thead>
       <tr>
         <td colspan="4" style="padding-top:${reportTopSpace}%;padding-bottom:0;">
-
-          ${showHeader ? `<div style="text-align:center;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px;">${labName}</div>` : ""}
-
-          <!-- Patient info two-column grid -->
-          <table style="width:100%;border-collapse:collapse;margin-bottom:0;">
-            <tr>
-              <td style="width:50%;vertical-align:top;padding-bottom:2px;">
-                <table>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg No</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${reportId}</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Name</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${patientNameDisplay}</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Referred Dr</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${doctor}</td>
-                  </tr>
-                </table>
-              </td>
-              <td style="width:50%;vertical-align:top;">
-                <table>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Sex / Age</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${genderAge || "—"}</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Reg Date</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${regDate}</td>
-                  </tr>
-                  <tr>
-                    <td style="font-weight:700;white-space:nowrap;padding-right:4px;">Report Date</td>
-                    <td style="padding-right:8px;">:</td>
-                    <td style="font-weight:700;">${reportDate}</td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-          </table>
-
-          <!-- Divider -->
-          <div style="border-top:1px solid #000;margin:8px 0 0;"></div>
-
+          ${patientHeaderHtml}
         </td>
       </tr>
     </thead>
 
-    <!-- ── Test sections ── -->
     ${allTestsHtml}
-
   </table>
 
-  <!-- ── End of Report ── -->
   <div style="text-align:center;margin-top:5px;margin-bottom:8px;font-size:13px;font-weight:700;">
     End of Report
   </div>
 
-</div><!-- /report-inner -->
-</div><!-- /report-wrap -->
+</div>
+</div>
 
 <div id="dl-bar">
   <span>Report — ${patientNameDisplay}</span>
