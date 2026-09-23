@@ -113,8 +113,8 @@ function testSectionHtml(group: PrintTestGroup, printMode: "individual" | "group
   }).join("");
 
   const tbodyStyle = printMode === "individual" && !isLast
-    ? "page-break-after:always;"
-    : printMode === "grouped" ? "page-break-inside:avoid;" : "";
+    ? "page-break-after:always;break-after:page;"
+    : printMode === "grouped" ? "page-break-inside:avoid;break-inside:avoid;" : "";
 
   return `<tbody style="${tbodyStyle}">
     <!-- Category heading: centred, bold, all-caps, always with border-top and border-bottom -->
@@ -273,13 +273,14 @@ export function buildPrintHtml({
       @page {
         margin: 0;
         size: A4;
-        margin-top: ${reportTopSpace}%;
         margin-bottom: ${reportBottomSpace}%;
       }
       * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       #dl-bar { display: none !important; }
       body { background: #fff; }
       #report-wrap { transform: none !important; width: 100% !important; }
+      /* iOS Safari: use -webkit- prefixed properties */
+      tbody { -webkit-column-break-inside: avoid; }
       /* Ensure thead repeats on every page */
       thead { display: table-header-group; }
     }
@@ -319,7 +320,7 @@ export function buildPrintHtml({
     <!-- ── THEAD: repeats on every printed page ── -->
     <thead>
       <tr>
-        <td colspan="4" style="padding-top:0;padding-bottom:0;">
+        <td colspan="4" style="padding-top:${reportTopSpace}%;padding-bottom:0;">
 
           ${showHeader ? `<div style="text-align:center;font-size:20px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;padding-bottom:8px;">${labName}</div>` : ""}
 
