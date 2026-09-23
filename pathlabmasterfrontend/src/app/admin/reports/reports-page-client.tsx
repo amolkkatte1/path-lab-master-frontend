@@ -330,7 +330,7 @@ export default function ReportsPageClient({
       });
     if (testGroups.length === 0) return;
 
-    const html = buildPrintHtml({
+    const commonPrintArgs = {
       labName: data.labName,
       patientInfo: {
         patientName: data.patientName,
@@ -342,16 +342,36 @@ export default function ReportsPageClient({
       reportId: data.reportId,
       createdAt: data.reportCreatedAt,
       patientCreatedAt: data.patientCreatedAt,
-      testGroups,
       reportTopSpace: data.reportTopSpace,
       reportBottomSpace: data.reportBottomSpace,
       includeHeader,
-      printMode: mode,
-    });
+    };
 
-    // iOS Safari ignores iframe.print() — use new tab instead
+    // iOS Safari ignores CSS page breaks on tbody — build one HTML per test for individual mode
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+    if (isIOS && mode === "individual") {
+      for (const group of testGroups) {
+        const pageHtml = buildPrintHtml({
+          ...commonPrintArgs,
+          testGroups: [group],
+          printMode: "individual",
+        });
+        const win = window.open("", "_blank");
+        if (!win) continue;
+        win.document.open(); win.document.write(pageHtml); win.document.close();
+        const tryPrint = () => { try { win.focus(); win.print(); } catch { /* ignore */ } };
+        if (win.document.readyState === "complete") tryPrint();
+        else { win.onload = tryPrint; setTimeout(tryPrint, 800); }
+      }
+      setPrintDialog(null);
+      return;
+    }
+
+    const html = buildPrintHtml({ ...commonPrintArgs, testGroups, printMode: mode });
+
     if (isIOS) {
+      // grouped mode on iOS — single tab
       const win = window.open("", "_blank");
       if (win) {
         win.document.open(); win.document.write(html); win.document.close();
