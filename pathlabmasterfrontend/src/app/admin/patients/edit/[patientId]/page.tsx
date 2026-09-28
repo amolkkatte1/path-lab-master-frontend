@@ -33,6 +33,8 @@ type Patient = {
   labId?: number | string;
   createdBy?: number | string;
   createdAt?: string;
+  doctorId?: number | string;
+  doctorName?: string;
 };
 
 type PatientApiResponse = { data?: Patient } | Patient;
@@ -148,6 +150,8 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
             currentLabId={user.labId}
             currentLabName={user.labName}
             currentUserId={user.userId}
+            initialDoctorId={patient.doctorId}
+            initialDoctorName={patient.doctorName}
           />
           <label>
             <span className="mb-2 block text-sm font-semibold">Aadhaar number</span>

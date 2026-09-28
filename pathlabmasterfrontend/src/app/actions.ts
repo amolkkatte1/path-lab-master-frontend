@@ -1303,6 +1303,25 @@ export type ReportViewData = {
   reportCreatedAt: string;
   reportTopSpace: number;
   reportBottomSpace: number;
+  createdBy: string;
+  updatedBy: string;
+  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean }>;
+  pendingTests: Record<string, Array<{
+    parameterName: string;
+    value: string | null;
+    sequence: number;
+    dataType: string;
+    unit: string | null;
+    formula: string | null;
+    upperRange: number | null;
+    lowerRange: number | null;
+    isBold: boolean | null;
+    isNameBold: boolean | null;
+    isDescriptionParameter: boolean | null;
+    isValueRequired: boolean | null;
+    isValueDiscription: boolean | null;
+    parameterRange: string | null;
+  }>>;
   completedTests: Record<string, Array<{
     parameterName: string;
     value: string | null;
@@ -1333,7 +1352,10 @@ export async function getReportViewData(
     };
     type ReportApiData = {
       reportId?: string; patientId?: string; labId?: string;
+      pendingTest?: ReportViewData["pendingTests"];
       completedTest?: Record<string, unknown[]>;
+      createdBy?: string; updatedBy?: string;
+      status?: Record<string, { isSaved?: boolean; isApproved?: boolean; isPrinted?: boolean }>;
       createdAt?: string;
     };
 
@@ -1384,10 +1406,93 @@ export async function getReportViewData(
         reportCreatedAt: r.createdAt ?? "",
         reportTopSpace: configPayload.data?.reportTopSpace ?? 0,
         reportBottomSpace: configPayload.data?.reportBottomSpace ?? 0,
+        createdBy: r.createdBy ?? "",
+        updatedBy: r.updatedBy ?? "",
+        status: Object.fromEntries(
+          Object.entries(r.status ?? {}).map(([key, status]) => [key, {
+            isSaved: status.isSaved ?? false,
+            isApproved: status.isApproved ?? false,
+            isPrinted: status.isPrinted ?? false,
+          }]),
+        ),
+        pendingTests: (r.pendingTest ?? {}) as ReportViewData["pendingTests"],
         completedTests: (r.completedTest ?? {}) as ReportViewData["completedTests"],
       },
     };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Failed to load report" };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Client-friendly updatePatient — returns ok/error instead of redirecting
+// ---------------------------------------------------------------------------
+export async function updatePatientClient(payload: {
+  patientId: string;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  mobileNumber: string;
+  prefix: string;
+  mailId: string;
+  gender: string;
+  dateOfBirth: string;
+  doctorId: string;
+  doctorName: string;
+  year: number;
+  month: number;
+  days: number;
+  adharNumber: string;
+  labName: string;
+  labId: string;
+  createdBy: string;
+  createdAt: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const currentUser = await requireUserType("Administrator");
+  const now = new Date().toISOString();
+
+  const dateOfBirth = payload.dateOfBirth.replace(
+    /^(\d{4})-(\d{2})-(\d{2})$/,
+    "$3/$2/$1",
+  );
+
+  const body = {
+    patientId: payload.patientId,
+    firstName: payload.firstName,
+    middleName: payload.middleName,
+    lastName: payload.lastName,
+    mobileNumber: payload.mobileNumber ? Number(payload.mobileNumber) : undefined,
+    prefix: payload.prefix,
+    mailId: payload.mailId,
+    gender: payload.gender,
+    dateOfBirth,
+    doctorId: payload.doctorId || undefined,
+    doctorName: payload.doctorName || undefined,
+    year: payload.year || 0,
+    month: payload.month || 0,
+    days: payload.days || 0,
+    adharNumber: payload.adharNumber ? Number(payload.adharNumber) : undefined,
+    labName: payload.labName,
+    labId: payload.labId,
+    createdBy: payload.createdBy,
+    updatedBy: String(currentUser.userId),
+    createdAt: payload.createdAt,
+    updatedAt: now,
+  };
+
+  try {
+    const response = await fetch(API_ENDPOINTS.updatePatient, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(body, ["patientId", "labId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `Update failed (${response.status}).` };
+    }
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Network error." };
   }
 }

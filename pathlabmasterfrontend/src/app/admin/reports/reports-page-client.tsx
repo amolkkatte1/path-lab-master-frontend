@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { FiCheck, FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 
 import {
@@ -11,7 +12,8 @@ import {
   type ReportListItem,
   type ReportViewData,
 } from "@/app/actions";
-import { buildPrintHtml, type PrintTestGroup } from "@/app/admin/pending-tests/report-print-view";
+import { getGenerateReportPdfUrl } from "@/lib/api";
+import { EditPatientDialog } from "./edit-patient-dialog";
 
 const today = new Date();
 const formatDateInput = (date: Date) => date.toISOString().slice(0, 10);
@@ -31,6 +33,9 @@ export type DoctorOption = ReportDoctorOption;
 type ReportsPageClientProps = {
   initialDoctors: DoctorOption[];
   initialReports: ReportListItem[];
+  labId: string;
+  labName: string;
+  currentUserId: string;
 };
 
 function DoctorFilterSelector({
@@ -145,6 +150,7 @@ function DoctorFilterSelector({
 type ReportApiItem = ReportListItem;
 
 type ReportRow = {
+  reportId: string;
   patientId: string;
   labId: string;
   patientName: string;
@@ -156,7 +162,7 @@ type ReportRow = {
   tests: ReportTest[];
 };
 
-type TestStatusLabel = "SAVED" | "APPROVED" | "PRINTED";
+type TestStatusLabel = "SAVED" | "APPROVED" | "PRINTED" | "PENDING";
 type ReportTest = {
   name: string;
   status: TestStatusLabel | null;
@@ -230,6 +236,7 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
   const regNo = item.patientId ? String(item.patientId) : item.reportId ? String(item.reportId) : "N/A";
 
   return {
+    reportId: item.reportId ? String(item.reportId) : "",
     patientId: item.patientId ? String(item.patientId) : "",
     labId: item.labId ? String(item.labId) : "",
     patientName,
@@ -241,32 +248,39 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
     tests: testEntries.map(([testName, testKey]) => {
       const statusEntry = toTestStatus(statuses[testKey])
         ?? toTestStatus(Object.entries(statuses).find(([statusKey]) => testDisplayName(statusKey) === testName)?.[1]);
+      const resolved = getTestStatus(statusEntry);
+      // If no status or all flags are false → PENDING
+      const isPending = !statusEntry || (
+        !statusEntry.isSaved && !statusEntry.isApproved && !statusEntry.isPrinted
+      );
       return {
         name: testName,
-        status: getTestStatus(statusEntry),
+        status: resolved ?? (isPending ? "PENDING" as const : null),
       };
     }),
   };
 }
 
 function statusBadgeClass(status: TestStatusLabel) {
-  if (status === "SAVED") {
-    return "report-status-saved";
-  }
-  if (status === "APPROVED") {
-    return "report-status-approved";
-  }
+  if (status === "PENDING") return "report-status-pending";
+  if (status === "SAVED") return "report-status-saved";
+  if (status === "APPROVED") return "report-status-approved";
   return "report-status-printed";
 }
 
 export default function ReportsPageClient({
   initialDoctors,
   initialReports,
+  labId,
+  labName,
+  currentUserId,
 }: Readonly<ReportsPageClientProps>) {
+  const router = useRouter();
   const [rows, setRows] = useState<ReportRow[]>(() => initialReports.map(mapReportApiItem));
   const [filters, setFilters] = useState(initialFilters);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [actionMenuRow, setActionMenuRow] = useState<ReportRow | null>(null);
+  const [editPatientId, setEditPatientId] = useState<string | null>(null);
 
   // Print dialog state
   type PrintDialogState = { row: ReportRow; data: ReportViewData } | null;
@@ -275,9 +289,34 @@ export default function ReportsPageClient({
   const [printError, setPrintError] = useState<string | null>(null);
   const [selectedTests, setSelectedTests] = useState<Set<string>>(new Set());
   const [includeHeader, setIncludeHeader] = useState(false);
-  const printingRef = useRef(false);
+
+  const [dateRangeError, setDateRangeError] = useState<string | null>(null);
+
+  function openPathLabReports(row: ReportRow) {
+    if (!row.patientId) return;
+    const query = row.reportId ? `?reportId=${encodeURIComponent(row.reportId)}` : "";
+    router.push(`/admin/reports/${encodeURIComponent(row.patientId)}${query}`);
+  }
+
+  // Auto-dismiss date range warning after 5 seconds
+  useEffect(() => {
+    if (!dateRangeError) return;
+    const timer = setTimeout(() => setDateRangeError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [dateRangeError]);
 
   async function handleSearch() {
+    // Validate date range ≤ 31 days
+    if (filters.fromDate && filters.toDate) {
+      const from = new Date(filters.fromDate);
+      const to = new Date(filters.toDate);
+      const diffDays = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays > 31) {
+        setDateRangeError("Difference between from date and to date should not be greater than 31 Day(s)!");
+        return;
+      }
+    }
+    setDateRangeError(null);
     const result = await getReportList(filters);
     setRows(result.reports.map(mapReportApiItem));
   }
@@ -294,6 +333,7 @@ export default function ReportsPageClient({
 
   const clearFilters = async () => {
     setFilters(initialFilters);
+    setDateRangeError(null);
     const result = await getReportList(initialFilters);
     setRows(result.reports.map(mapReportApiItem));
   };
@@ -313,83 +353,38 @@ export default function ReportsPageClient({
   }
 
   function doPrint(mode: "individual" | "grouped") {
-    if (!printDialog || printingRef.current) return;
+    if (!printDialog) return;
     const { data } = printDialog;
-    const testGroups: PrintTestGroup[] = Object.entries(data.completedTests)
-      .filter(([key]) => selectedTests.has(key))
-      .map(([key, parameters]) => ({
-        key,
-        code: key.replace(/_\d+$/, ""),
-        parameters,
-      }))
-      .sort((a, b) => {
-        const isCbc = (code: string) => /cbc|haemogram/i.test(code);
-        if (isCbc(a.code) && !isCbc(b.code)) return -1;
-        if (!isCbc(a.code) && isCbc(b.code)) return 1;
-        return 0;
-      });
-    if (testGroups.length === 0) return;
 
-    const commonPrintArgs = {
-      labName: data.labName,
-      patientInfo: {
-        patientName: data.patientName,
-        gender: data.gender,
-        age: data.age,
-        doctorName: data.doctorName,
-        createdAt: data.patientCreatedAt,
-      },
-      reportId: data.reportId,
-      createdAt: data.reportCreatedAt,
-      patientCreatedAt: data.patientCreatedAt,
-      reportTopSpace: data.reportTopSpace,
-      reportBottomSpace: data.reportBottomSpace,
-      includeHeader,
-    };
+    // Extract test IDs from selected keys (e.g. "TEST NAME_20260901184545955" → "20260901184545955")
+    const testIds = [...selectedTests]
+      .map((key) => key.replace(/^.*_(\d+)$/, "$1"))
+      .filter((id) => id.length > 0);
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (testIds.length === 0) return;
 
-    const html = buildPrintHtml({
-      ...commonPrintArgs,
-      testGroups,
-      printMode: mode,
-      isIOS,
-    });
-
-    if (isIOS) {
-      const win = window.open("", "_blank");
-      if (win) {
-        win.document.open(); win.document.write(html); win.document.close();
-        const tryPrint = () => { try { win.focus(); win.print(); } catch { /* ignore */ } };
-        if (win.document.readyState === "complete") tryPrint();
-        else { win.onload = tryPrint; setTimeout(tryPrint, 800); }
-      }
-      setPrintDialog(null);
-      return;
-    }
-
-    // Desktop + Android: hidden iframe
-    const iframe = document.createElement("iframe");
-    iframe.style.cssText = "position:fixed;top:0;left:0;width:0;height:0;border:0;opacity:0;";
-    document.body.appendChild(iframe);
-    const doc = iframe.contentDocument ?? iframe.contentWindow?.document;
-    if (!doc) { document.body.removeChild(iframe); return; }
-    doc.open(); doc.write(html); doc.close();
-    printingRef.current = true;
-    const cleanup = () => {
-      setTimeout(() => { document.body.removeChild(iframe); printingRef.current = false; }, 1000);
-    };
-    if (iframe.contentDocument?.readyState === "complete") {
-      iframe.contentWindow?.focus(); iframe.contentWindow?.print(); cleanup();
-    } else {
-      iframe.onload = () => { iframe.contentWindow?.focus(); iframe.contentWindow?.print(); cleanup(); };
-      setTimeout(() => { if (printingRef.current) { iframe.contentWindow?.print(); cleanup(); } }, 800);
-    }
+    const url = getGenerateReportPdfUrl(data.patientId, testIds, includeHeader, mode === "grouped");
+    window.open(url, "_blank");
     setPrintDialog(null);
   }
 
   return (
     <div className="report-search-page min-h-screen w-full">
+
+      {dateRangeError && (
+        <div className="flex items-center gap-3 border-b border-amber-500/30 bg-amber-100/50 px-5 py-3 text-sm font-medium text-amber-200">
+          <span className="flex-1">{dateRangeError}</span>
+          <button
+            type="button"
+            onClick={() => setDateRangeError(null)}
+            aria-label="Dismiss warning"
+            className="shrink-0 rounded p-0.5 transition hover:bg-amber-500/20"
+          >
+            <FiX className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="report-search-header border-b px-4 py-3 text-sm font-semibold uppercase tracking-[0.22em]">
         LAB TEST SEARCH
       </div>
@@ -548,9 +543,13 @@ export default function ReportsPageClient({
 
                   {/* Row 1: name + bill pending badge */}
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-                    <span className="report-test-name text-sm font-semibold leading-tight">
+                    <button
+                      type="button"
+                      onClick={() => setEditPatientId(row.patientId)}
+                      className="report-test-name text-sm font-semibold leading-tight text-left hover:underline hover:text-emerald-300 transition"
+                    >
                       {row.patientName}
-                    </span>
+                    </button>
                     <span className="shrink-0 rounded border border-rose-400/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-400">
                       Bill Pending
                     </span>
@@ -600,7 +599,7 @@ export default function ReportsPageClient({
                     <span className="report-action-icon-wrapper"><FiHash className="h-4 w-4" /></span>
                     <span>Barcode</span>
                   </button>
-                  <button type="button" className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
+                  <button type="button" onClick={() => openPathLabReports(row)} className="report-action-button flex flex-col items-center gap-1 rounded-lg border px-2.5 py-2 text-[10px] font-medium transition">
                     <span className="report-action-icon-wrapper"><FiFileText className="h-4 w-4" /></span>
                     <span>PathLab Reports</span>
                   </button>
@@ -660,7 +659,7 @@ export default function ReportsPageClient({
               { label: "Barcode", icon: FiHash, onClick: undefined },
               { label: "Print Reports", icon: FiPrinter, onClick: () => openPrintDialog(actionMenuRow) },
               { label: "WhatsApp", icon: FiMessageCircle, onClick: undefined },
-              { label: "PathLab Reports", icon: FiFileText, onClick: undefined },
+              { label: "PathLab Reports", icon: FiFileText, onClick: () => { setActionMenuRow(null); openPathLabReports(actionMenuRow); } },
             ].map(({ label, icon: Icon, onClick }) => (
               <button
                 key={label}
@@ -788,6 +787,20 @@ export default function ReportsPageClient({
             </div>
           </div>
         </div>
+      )}
+
+      {editPatientId && (
+        <EditPatientDialog
+          patientId={editPatientId}
+          labId={labId}
+          labName={labName}
+          currentUserId={currentUserId}
+          onClose={() => setEditPatientId(null)}
+          onSaved={() => {
+            setEditPatientId(null);
+            void handleSearch();
+          }}
+        />
       )}
     </div>
   );

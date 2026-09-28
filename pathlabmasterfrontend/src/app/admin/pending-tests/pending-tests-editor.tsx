@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiCheck, FiPrinter, FiSave, FiX } from "react-icons/fi";
 import { saveReport } from "@/app/actions";
+import { getGenerateReportPdfUrl } from "@/lib/api";
 import { buildPrintHtml } from "./report-print-view";
 
 export type PendingParameter = {
@@ -68,6 +69,73 @@ function buildStatusFlags(action: SaveAction): TestStatus {
   };
 }
 
+/**
+ * Evaluates a formula string by substituting parameter names (from nameToValue map)
+ * with their numeric values, then computing the arithmetic result.
+ * Returns the result rounded to 2 decimal places, or "" on error.
+ */
+function evaluateFormula(formula: string, nameToValue: Map<string, string>): string {
+  if (!formula.trim()) return "";
+
+  // Sort names longest-first to avoid partial replacements
+  // e.g. "PACKED CELL VOLUME (PCV)" before "PCV"
+  const sortedNames = [...nameToValue.keys()].sort((a, b) => b.length - a.length);
+
+  let expr = formula;
+  for (const name of sortedNames) {
+    const val = nameToValue.get(name) ?? "";
+    const num = parseFloat(val);
+    if (!Number.isNaN(num)) {
+      // Escape special regex chars in parameter name, then replace all occurrences
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      expr = expr.replace(new RegExp(escaped, "g"), String(num));
+    }
+  }
+
+  // Only allow safe arithmetic characters
+  if (!/^[\d\s+\-*/().]+$/.test(expr)) return "";
+
+  try {
+    // eslint-disable-next-line no-new-func
+    const result = new Function(`"use strict"; return (${expr});`)() as number;
+    if (!isFinite(result) || isNaN(result)) return "";
+    return String(Math.round(result * 100) / 100);
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Given a sorted list of parameters and a map of sequence→currentValue,
+ * computes values for all formula-based parameters.
+ * Returns a sequence→computed value map.
+ */
+function computeFormulaValues(
+  parameters: PendingParameter[],
+  currentValues: Map<number, string>,
+): Map<number, string> {
+  const sorted = [...parameters].sort((a, b) => a.sequence - b.sequence);
+  // Build name→value as we process in order (so earlier values feed later formulas)
+  const nameToValue = new Map<string, string>();
+  const result = new Map<number, string>();
+
+  for (const p of sorted) {
+    const currentVal = currentValues.get(p.sequence) ?? p.value ?? "";
+
+    if (p.formula && p.formula.trim()) {
+      const computed = evaluateFormula(p.formula, nameToValue);
+      result.set(p.sequence, computed);
+      // Use computed value for downstream formulas
+      nameToValue.set(p.parameterName, computed);
+    } else {
+      // Use the current input value for downstream formulas
+      nameToValue.set(p.parameterName, currentVal);
+    }
+  }
+
+  return result;
+}
+
 function openPrintWindow(html: string | string[]) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const singleHtml = Array.isArray(html) ? html[0] : html;
@@ -121,6 +189,7 @@ export function PendingTestsEditor({
   const [activeTest, setActiveTest] = useState<PendingTestGroup | null>(null);
   const [boldMap, setBoldMap] = useState<Record<number, boolean>>({});
   const [oorMap, setOorMap] = useState<Record<number, boolean>>({});
+  const [formulaValueMap, setFormulaValueMap] = useState<Map<number, string>>(new Map());
   const [submitting, setSubmitting] = useState<SaveAction | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
@@ -141,12 +210,25 @@ export function PendingTestsEditor({
   function openTest(test: PendingTestGroup) {
     const boldSeed: Record<number, boolean> = {};
     const oorSeed: Record<number, boolean> = {};
+    // Seed current values map from existing parameter values
+    const currentValues = new Map<number, string>();
     for (const p of test.parameters) {
       boldSeed[p.sequence] = p.isBold ?? false;
-      oorSeed[p.sequence] = checkOor(p.value ?? "", p.lowerRange, p.upperRange);
+      const val = p.value ?? "";
+      currentValues.set(p.sequence, val);
+      oorSeed[p.sequence] = checkOor(val, p.lowerRange, p.upperRange);
+    }
+    const formulaSeed = computeFormulaValues(test.parameters, currentValues);
+    // Re-check OOR for formula-computed values
+    for (const p of test.parameters) {
+      if (p.formula?.trim() && formulaSeed.has(p.sequence)) {
+        const computed = formulaSeed.get(p.sequence) ?? "";
+        oorSeed[p.sequence] = checkOor(computed, p.lowerRange, p.upperRange);
+      }
     }
     setBoldMap(boldSeed);
     setOorMap(oorSeed);
+    setFormulaValueMap(formulaSeed);
     setApiError(null);
     setShowPrintOptions(false);
     setIncludeHeader(false);
@@ -158,13 +240,52 @@ export function PendingTestsEditor({
     setBoldMap((prev) => ({ ...prev, [sequence]: isBold }));
   }
 
+  function recalculateFormulas(changedSequence: number, newValue: string) {
+    if (!activeTest) return;
+    // Build current values: inputRefs for non-formula params, override with the change
+    const currentValues = new Map<number, string>();
+    for (const p of activeTest.parameters) {
+      if (p.formula?.trim()) continue; // formula params get their value computed
+      const inputVal = inputRefs.current[p.sequence]?.value ?? p.value ?? "";
+      currentValues.set(p.sequence, p.sequence === changedSequence ? newValue : inputVal);
+    }
+    const newFormulaMap = computeFormulaValues(activeTest.parameters, currentValues);
+    setFormulaValueMap(newFormulaMap);
+    // Update OOR for formula params
+    setOorMap((prev) => {
+      const next = { ...prev };
+      for (const p of activeTest.parameters) {
+        if (p.formula?.trim() && newFormulaMap.has(p.sequence)) {
+          next[p.sequence] = checkOor(newFormulaMap.get(p.sequence) ?? "", p.lowerRange, p.upperRange);
+        }
+      }
+      return next;
+    });
+  }
+
   function collectParameters(): PendingParameter[] {
     if (!activeTest) return [];
+    // Build final value map: user inputs first, then re-run formula computation
+    const currentValues = new Map<number, string>();
+    for (const p of activeTest.parameters) {
+      if (!p.formula?.trim()) {
+        currentValues.set(
+          p.sequence,
+          p.isDescriptionParameter
+            ? (p.value ?? "")
+            : (inputRefs.current[p.sequence]?.value ?? p.value ?? ""),
+        );
+      }
+    }
+    const finalFormulaMap = computeFormulaValues(activeTest.parameters, currentValues);
+
     return activeTest.parameters.map((p) => ({
       ...p,
-      value: p.isDescriptionParameter
-        ? (p.value ?? "")
-        : (inputRefs.current[p.sequence]?.value ?? p.value ?? ""),
+      value: p.formula?.trim()
+        ? (finalFormulaMap.get(p.sequence) ?? p.value ?? "")
+        : p.isDescriptionParameter
+          ? (p.value ?? "")
+          : (inputRefs.current[p.sequence]?.value ?? p.value ?? ""),
       isBold: boldMap[p.sequence] ?? p.isBold ?? false,
     }));
   }
@@ -214,26 +335,10 @@ export function PendingTestsEditor({
       }
 
       if (action === "approve_print") {
-        const testGroups = [{
-          key: activeTest.key,
-          code: activeTest.key.replace(/_\d+$/, ""),
-          parameters: updatedParameters,
-        }];
-
-        const html = buildPrintHtml({
-          labName,
-          patientInfo,
-          reportId: reportData.reportId,
-          createdAt: reportData.createdAt,
-          patientCreatedAt: patientInfo.createdAt ?? reportData.createdAt,
-          testGroups,
-          reportTopSpace,
-          reportBottomSpace,
-          includeHeader,
-          isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
-        });
-
-        openPrintWindow(html);
+        // Extract test ID from the key (e.g. "HAEMOGRAM ON CELL COUNTER_20260901184545955" → "20260901184545955")
+        const testId = activeTest.key.replace(/^.*_(\d+)$/, "$1");
+        const url = getGenerateReportPdfUrl(reportData.patientId, [testId], includeHeader);
+        window.open(url, "_blank");
       }
 
       setActiveTest(null);
@@ -334,6 +439,8 @@ export function PendingTestsEditor({
                   const nameBold = parameter.isNameBold ?? false;
                   const valueRequired = parameter.isValueRequired !== false;
                   const isOor = oorMap[parameter.sequence] ?? false;
+                  const isFormula = !!(parameter.formula?.trim());
+                  const formulaValue = formulaValueMap.get(parameter.sequence) ?? "";
 
                   return (
                     <div
@@ -346,24 +453,37 @@ export function PendingTestsEditor({
 
                       {valueRequired && (
                         <>
-                          <input
-                            ref={(el) => {
-                              inputRefs.current[parameter.sequence] = el;
-                            }}
-                            defaultValue={parameter.value ?? ""}
-                            type={
-                              parameter.dataType?.toLowerCase() === "number"
-                                ? "number"
-                                : "text"
-                            }
-                            min={parameter.lowerRange ?? undefined}
-                            max={parameter.upperRange ?? undefined}
-                            onChange={(e) => {
-                              const oor = checkOor(e.target.value, parameter.lowerRange, parameter.upperRange);
-                              setOorMap((prev) => ({ ...prev, [parameter.sequence]: oor }));
-                            }}
-                            className={`pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 outline-none${isBold ? " font-semibold" : ""}${isOor ? " is-out-of-range" : ""}`}
-                          />
+                          {isFormula ? (
+                            // Formula parameter — read-only, auto-computed
+                            <div className={`pending-test-parameter-input flex w-full items-center rounded-lg border px-3 py-2.5${isOor ? " is-out-of-range" : ""}`}>
+                              <span className={`flex-1 text-sm${isBold ? " font-semibold" : ""}`}>
+                                {formulaValue || <span className="opacity-40">—</span>}
+                              </span>
+                              <span className="ml-2 shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                                Auto
+                              </span>
+                            </div>
+                          ) : (
+                            <input
+                              ref={(el) => {
+                                inputRefs.current[parameter.sequence] = el;
+                              }}
+                              defaultValue={parameter.value ?? ""}
+                              type={
+                                parameter.dataType?.toLowerCase() === "number"
+                                  ? "number"
+                                  : "text"
+                              }
+                              min={parameter.lowerRange ?? undefined}
+                              max={parameter.upperRange ?? undefined}
+                              onChange={(e) => {
+                                const oor = checkOor(e.target.value, parameter.lowerRange, parameter.upperRange);
+                                setOorMap((prev) => ({ ...prev, [parameter.sequence]: oor }));
+                                recalculateFormulas(parameter.sequence, e.target.value);
+                              }}
+                              className={`pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 outline-none${isBold ? " font-semibold" : ""}${isOor ? " is-out-of-range" : ""}`}
+                            />
+                          )}
                           <span className="pending-test-parameter-meta text-xs">
                             {parameter.unit || ""}
                             {parameter.lowerRange !== null ||

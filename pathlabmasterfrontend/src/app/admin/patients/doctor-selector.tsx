@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FiPlus, FiSearch, FiX } from "react-icons/fi";
 
@@ -21,6 +21,8 @@ type DoctorSelectorProps = {
   currentLabId: number | string;
   currentLabName: string;
   currentUserId: string;
+  initialDoctorId?: number | string;
+  initialDoctorName?: string;
 };
 
 export function DoctorSelector({
@@ -28,11 +30,13 @@ export function DoctorSelector({
   currentLabId,
   currentLabName,
   currentUserId,
+  initialDoctorId,
+  initialDoctorName,
 }: DoctorSelectorProps) {
   const [doctorList, setDoctorList] = useState(initialDoctors);
-  const [query, setQuery] = useState("");
-  const [selectedDoctorId, setSelectedDoctorId] = useState<string>("");
-  const [selectedDoctorName, setSelectedDoctorName] = useState("");
+  const [query, setQuery] = useState(initialDoctorName ?? "");
+  const [selectedDoctorId, setSelectedDoctorId] = useState<string>(initialDoctorId ? String(initialDoctorId) : "");
+  const [selectedDoctorName, setSelectedDoctorName] = useState(initialDoctorName ?? "");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newDoctorName, setNewDoctorName] = useState("");
@@ -40,6 +44,37 @@ export function DoctorSelector({
   const [newDoctorEmail, setNewDoctorEmail] = useState("");
   const [isCreatingDoctor, setIsCreatingDoctor] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [dropdownRect, setDropdownRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isDropdownOpen) {
+      setDropdownRect(null);
+      return;
+    }
+
+    function updateDropdownPosition() {
+      const rect = inputWrapperRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const gap = 8;
+      const below = window.innerHeight - rect.bottom - gap;
+      const maxHeight = Math.max(100, Math.min(320, below));
+      setDropdownRect({
+        left: rect.left,
+        top: rect.bottom + gap,
+        width: rect.width,
+        maxHeight,
+      });
+    }
+
+    updateDropdownPosition();
+    window.addEventListener("resize", updateDropdownPosition);
+    window.addEventListener("scroll", updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener("resize", updateDropdownPosition);
+      window.removeEventListener("scroll", updateDropdownPosition, true);
+    };
+  }, [isDropdownOpen]);
 
   useEffect(() => {
     if (!isDropdownOpen) return;
@@ -48,7 +83,7 @@ export function DoctorSelector({
       const target = event.target as Node | null;
       const root = document.querySelector("[data-doctor-selector-root]");
 
-      if (!root || !target || root.contains(target)) {
+      if (!root || !target || root.contains(target) || (target instanceof Element && target.closest("[data-doctor-dropdown]"))) {
         return;
       }
 
@@ -100,6 +135,7 @@ export function DoctorSelector({
 
   async function handleCreateDoctor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    event.stopPropagation();
 
     const name = newDoctorName.trim();
     const mobile = newDoctorMobile.trim();
@@ -166,7 +202,7 @@ export function DoctorSelector({
     <div className="sm:col-span-2" data-doctor-selector-root>
       <label className="block">
         <span className="mb-2 block text-sm font-semibold text-slate-700">Ref. doctor</span>
-        <div className="relative">
+          <div className="relative" ref={inputWrapperRef}>
           <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2.5 shadow-sm transition focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-100">
             <FiSearch className="h-4 w-4 text-slate-400" />
             <input
@@ -189,8 +225,8 @@ export function DoctorSelector({
             </button>
           </div>
 
-          {isDropdownOpen && filteredDoctors.length > 0 && (
-            <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg">
+          {isDropdownOpen && dropdownRect && filteredDoctors.length > 0 && createPortal(
+            <div data-doctor-dropdown style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width, maxHeight: dropdownRect.maxHeight, overflowY: "auto", zIndex: 55 }} className="rounded-xl border border-slate-200 bg-white shadow-lg">
               {filteredDoctors.slice(0, 8).map((doctor) => (
                 <button
                   key={String(doctor.doctorId)}
@@ -207,13 +243,13 @@ export function DoctorSelector({
                   <span className="text-xs text-slate-500">ID: {doctor.doctorId}</span>
                 </button>
               ))}
-            </div>
+            </div>, document.body,
           )}
 
-          {isDropdownOpen && filteredDoctors.length === 0 && (
-            <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+          {isDropdownOpen && dropdownRect && filteredDoctors.length === 0 && createPortal(
+            <div data-doctor-dropdown style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width, maxHeight: dropdownRect.maxHeight, zIndex: 55 }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
               No doctors found for this lab.
-            </div>
+            </div>, document.body,
           )}
         </div>
       </label>
@@ -223,7 +259,7 @@ export function DoctorSelector({
 
       {isModalOpen &&
         createPortal(
-          <div className="fixed inset-0 z-30 flex items-center justify-center bg-slate-950/60 p-4">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/60 p-4">
             <div className="w-full max-w-md rounded-2xl bg-white p-6 text-slate-900 shadow-2xl">
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">Add doctor</h3>

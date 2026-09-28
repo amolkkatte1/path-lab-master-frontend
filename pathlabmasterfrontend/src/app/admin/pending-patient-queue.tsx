@@ -16,6 +16,7 @@ export type PendingPatient = {
   testName?: string;
   testList?: Array<{ testName?: string; serviceName?: string }>;
   pendingTest?: Record<string, unknown>;
+  completedTest?: Record<string, unknown>;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -38,7 +39,17 @@ function patientTests(patient: PendingPatient) {
     return patient.testList
       .map((test) => removeTestId(test.testName || test.serviceName || "Test"))
       .join(", ");
-  if (patient.pendingTest) return Object.keys(patient.pendingTest).map(removeTestId).join(", ");
+
+  // Collect from both pendingTest and completedTest, deduplicate by display name
+  const allTests = new Map<string, true>();
+  if (patient.pendingTest) {
+    Object.keys(patient.pendingTest).forEach((k) => allTests.set(removeTestId(k), true));
+  }
+  // if (patient.completedTest) {
+  //   Object.keys(patient.completedTest).forEach((k) => allTests.set(removeTestId(k), true));
+  // }
+  if (allTests.size > 0) return [...allTests.keys()].join(", ");
+
   return "Pending test";
 }
 

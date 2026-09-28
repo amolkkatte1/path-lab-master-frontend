@@ -223,14 +223,14 @@ export default async function AdminDashboard() {
             Here&apos;s what is happening at {user.labName} today.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        {/* <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.24)] transition hover:bg-emerald-400"
           >
             <FiPlus /> New test request
           </button>
-        </div>
+        </div> */}
       </div>
 
       <section className="mx-1 rounded-2xl flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4 bg-none">

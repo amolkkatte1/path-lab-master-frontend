@@ -101,3 +101,15 @@ export function stringifyApiPayload(
     return value;
   }).replace(/"__RAW_INTEGER__(-?\d+)"/g, "$1");
 }
+
+export function getGenerateReportPdfUrl(
+  patientId: string,
+  testIds: string[],
+  includeHeader: boolean,
+  printGroup = false,
+) {
+  const rIds = testIds.join("|");
+  const hdr = includeHeader ? "true" : "false";
+  const pg = printGroup ? "true" : "false";
+  return `${API_BASE_URL}/report/generate/pId/${patientId}/rIds/${rIds}/hdr/${hdr}/mdsn/true/pg/${pg}`;
+}
