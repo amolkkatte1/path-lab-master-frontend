@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiCheck, FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
+import { FiCalendar, FiCheck, FiChevronRight, FiDownload, FiFileText, FiFilter, FiHash, FiMessageCircle, FiPrinter, FiSearch, FiTrash2, FiX } from "react-icons/fi";
 
 import {
   getReportDoctors,
@@ -27,6 +27,97 @@ const initialFilters = {
   doctor: "",
   doctorId: "",
 };
+
+function formatDateForDisplay(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
+}
+
+function dateFromDisplay(value: string) {
+  const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return null;
+  const [, day, month, year] = match;
+  const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+  if (parsed.getFullYear() !== Number(year) || parsed.getMonth() !== Number(month) - 1 || parsed.getDate() !== Number(day)) return null;
+  return `${year}-${month}-${day}`;
+}
+
+function ReportDateInput({
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  min?: string;
+  max?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(() => formatDateForDisplay(value));
+  const datePickerRef = useRef<HTMLInputElement>(null);
+
+  function isWithinRange(date: string) {
+    return (!min || date >= min) && (!max || date <= max);
+  }
+
+  function openDatePicker() {
+    const picker = datePickerRef.current;
+    if (!picker) return;
+    try {
+      if (typeof picker.showPicker === "function") picker.showPicker();
+      else picker.click();
+    } catch {
+      picker.click();
+    }
+  }
+
+  useEffect(() => {
+    setDisplayValue(formatDateForDisplay(value));
+  }, [value]);
+
+  return (
+    <div className="relative flex items-center">
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="dd/mm/yyyy"
+        value={displayValue}
+        onChange={(event) => {
+          const nextValue = event.target.value;
+          setDisplayValue(nextValue);
+          const parsed = dateFromDisplay(nextValue);
+          if (parsed && isWithinRange(parsed)) onChange(parsed);
+          else if (!nextValue) onChange("");
+        }}
+        onClick={openDatePicker}
+        onBlur={() => {
+          const parsed = dateFromDisplay(displayValue);
+          if (displayValue && (!parsed || !isWithinRange(parsed))) setDisplayValue(formatDateForDisplay(value));
+        }}
+        className="report-input w-full rounded-lg border px-3 py-2.5 pr-11 text-sm outline-none transition"
+        aria-label="Date in day/month/year format"
+      />
+      <button
+        type="button"
+        onClick={openDatePicker}
+        className="absolute right-1 inline-flex h-9 w-9 items-center justify-center rounded-md text-slate-500 transition hover:bg-slate-100 dark:hover:bg-slate-800"
+        aria-label="Open calendar"
+      >
+        <FiCalendar className="h-4 w-4" />
+      </button>
+      <input
+        ref={datePickerRef}
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(event) => onChange(event.target.value)}
+        className="pointer-events-none absolute left-1 top-1/2 h-9 w-9 -translate-y-1/2 opacity-0"
+        aria-label="Choose date"
+      />
+    </div>
+  );
+}
 
 export type DoctorOption = ReportDoctorOption;
 
@@ -118,8 +209,8 @@ function DoctorFilterSelector({
       </div>
 
       {isDropdownOpen && filteredDoctors.length > 0 && (
-        <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
-          {filteredDoctors.slice(0, 8).map((doctor) => (
+        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          {filteredDoctors.map((doctor) => (
             <button
               key={String(doctor.doctorId)}
               type="button"
@@ -397,11 +488,10 @@ export default function ReportsPageClient({
                 <span className="report-filter-label mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                   From Date
                 </span>
-                <input
-                  type="date"
+                <ReportDateInput
                   value={filters.fromDate}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, fromDate: e.target.value }))}
-                  className="report-input report-date-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition"
+                  max={filters.toDate || undefined}
+                  onChange={(value) => setFilters((prev) => ({ ...prev, fromDate: value }))}
                 />
               </label>
 
@@ -409,11 +499,10 @@ export default function ReportsPageClient({
                 <span className="report-filter-label mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                   To Date
                 </span>
-                <input
-                  type="date"
+                <ReportDateInput
                   value={filters.toDate}
-                  onChange={(e) => setFilters((prev) => ({ ...prev, toDate: e.target.value }))}
-                  className="report-input report-date-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition"
+                  min={filters.fromDate || undefined}
+                  onChange={(value) => setFilters((prev) => ({ ...prev, toDate: value }))}
                 />
               </label>
             </div>
@@ -721,6 +810,20 @@ export default function ReportsPageClient({
 
             <div className="space-y-1 px-5 py-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Select tests to print</p>
+              {Object.keys(printDialog.data.completedTests).length > 0 && (
+                <label className="mb-2 flex cursor-pointer items-center gap-3 rounded-lg border-b border-white/10 px-2 py-2 text-sm font-semibold select-none">
+                  <input
+                    type="checkbox"
+                    checked={Object.keys(printDialog.data.completedTests).every((key) => selectedTests.has(key))}
+                    onChange={(event) => {
+                      const keys = Object.keys(printDialog.data.completedTests);
+                      setSelectedTests(event.target.checked ? new Set(keys) : new Set());
+                    }}
+                    className="h-4 w-4 accent-emerald-500"
+                  />
+                  Select all tests
+                </label>
+              )}
               {Object.keys(printDialog.data.completedTests).length === 0 ? (
                 <p className="text-sm text-slate-400">No completed tests found.</p>
               ) : (

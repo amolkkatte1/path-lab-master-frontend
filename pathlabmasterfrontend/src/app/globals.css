@@ -252,6 +252,92 @@ body {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+.edit-patient-dialog-backdrop {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.edit-patient-dialog-shell {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.edit-patient-dialog-header,
+.edit-patient-dialog-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.edit-patient-dialog-header {
+  background: rgba(15, 23, 42, 0.96);
+}
+
+.edit-patient-dialog-eyebrow {
+  color: #6ee7b7;
+}
+
+.edit-patient-dialog-label,
+.edit-patient-dialog-shell .text-slate-700,
+.edit-patient-dialog-shell .text-slate-600 {
+  color: #cbd5e1;
+}
+
+.edit-patient-dialog-shell input:not([type="hidden"]):not([type="date"]),
+.edit-patient-dialog-shell select {
+  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(2, 6, 23, 0.58);
+  color: #f8fafc;
+}
+
+.edit-patient-dialog-shell input::placeholder {
+  color: #94a3b8;
+}
+
+.edit-patient-dialog-shell input:focus,
+.edit-patient-dialog-shell select:focus {
+  border-color: #34d399;
+  outline: 2px solid rgba(52, 211, 153, 0.22);
+  outline-offset: 1px;
+}
+
+.edit-patient-dialog-shell select option {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.edit-patient-dialog-shell [data-doctor-selector-root] label > div > div {
+  border-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(2, 6, 23, 0.58);
+}
+
+.edit-patient-dialog-muted,
+.edit-patient-dialog-shell .text-slate-500 {
+  color: #94a3b8;
+}
+
+.edit-patient-dialog-error {
+  border-color: rgba(244, 63, 94, 0.32);
+  background: rgba(244, 63, 94, 0.1);
+  color: #fda4af;
+}
+
+.edit-patient-dialog-cancel {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.edit-patient-dialog-cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.edit-patient-dialog-submit {
+  border-color: rgba(16, 185, 129, 0.5);
+  background: rgba(5, 150, 105, 0.75);
+  color: #ffffff;
+}
+
+.edit-patient-dialog-submit:hover {
+  background: #059669;
+}
+
 .pending-test-print-options {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
@@ -269,9 +355,181 @@ body {
   background: rgba(255, 255, 255, 0.96);
 }
 
+.theme-light .workspace-shell .edit-patient-dialog-backdrop {
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-shell {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-header,
+.theme-light .workspace-shell .edit-patient-dialog-footer {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-header {
+  background: #f8fafc;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-eyebrow {
+  color: #047857;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-label,
+.theme-light .workspace-shell .edit-patient-dialog-shell .text-slate-700,
+.theme-light .workspace-shell .edit-patient-dialog-shell .text-slate-600 {
+  color: #475569;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-shell input:not([type="hidden"]):not([type="date"]),
+.theme-light .workspace-shell .edit-patient-dialog-shell select {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-shell input::placeholder {
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-shell select option {
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-shell [data-doctor-selector-root] label > div > div {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-muted,
+.theme-light .workspace-shell .edit-patient-dialog-shell .text-slate-500 {
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-cancel {
+  background: #ffffff;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-cancel:hover {
+  background: #f1f5f9;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-submit {
+  border-color: #059669;
+  background: #10b981;
+  color: #ffffff;
+}
+
+.theme-light .workspace-shell .edit-patient-dialog-submit:hover {
+  background: #059669;
+}
+
 .report-search-page {
   background: transparent;
   color: inherit;
+}
+
+.pathlab-report-panel {
+  border-color: #d7e1e5;
+  background: rgba(255, 255, 255, 0.92);
+  color: #172033;
+}
+
+.pathlab-report-header,
+.pathlab-report-tabs {
+  border-color: #e2e8f0;
+}
+
+.pathlab-report-eyebrow {
+  color: #047857;
+}
+
+.pathlab-report-title {
+  color: #172033;
+}
+
+.pathlab-report-meta {
+  color: #64748b;
+}
+
+.pathlab-report-tab {
+  border-color: transparent;
+  color: #64748b;
+}
+
+.pathlab-report-tab:hover {
+  color: #1e293b;
+}
+
+.pathlab-report-tab.is-active {
+  border-color: #10b981;
+  color: #047857;
+}
+
+.pathlab-report-count {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pathlab-report-empty {
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+.theme-dark .workspace-shell .pathlab-report-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(15, 23, 42, 0.82);
+  color: #e2e8f0;
+}
+
+.theme-dark .workspace-shell .pathlab-report-header,
+.theme-dark .workspace-shell .pathlab-report-tabs {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.theme-dark .workspace-shell .pathlab-report-eyebrow {
+  color: #6ee7b7;
+}
+
+.theme-dark .workspace-shell .pathlab-report-title {
+  color: #f8fafc;
+}
+
+.theme-dark .workspace-shell .pathlab-report-meta {
+  color: #94a3b8;
+}
+
+.theme-dark .workspace-shell .pathlab-report-tab {
+  color: #94a3b8;
+}
+
+.theme-dark .workspace-shell .pathlab-report-tab:hover {
+  color: #e2e8f0;
+}
+
+.theme-dark .workspace-shell .pathlab-report-tab.is-active {
+  border-color: #34d399;
+  color: #6ee7b7;
+}
+
+.theme-dark .workspace-shell .pathlab-report-count {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-shell .pathlab-report-empty {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: #94a3b8;
 }
 
 .report-search-header {

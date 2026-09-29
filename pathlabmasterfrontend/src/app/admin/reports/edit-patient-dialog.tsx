@@ -137,23 +137,23 @@ export function EditPatientDialog({ patientId, labId, labName, currentUserId, on
     }
   }
 
-  const inputCls = "w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-  const labelCls = "mb-1.5 block text-xs font-semibold text-slate-600";
+  const inputCls = "edit-patient-dialog-input w-full rounded-xl border px-3 py-2.5 text-sm outline-none transition";
+  const labelCls = "edit-patient-dialog-label mb-1.5 block text-xs font-semibold";
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm"
+      className="edit-patient-dialog-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
       aria-label="Edit patient"
     >
-      <div className="pending-test-dialog w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl flex flex-col">
+      <div className="edit-patient-dialog-shell pending-test-dialog w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl border shadow-2xl flex flex-col">
 
         {/* Header */}
-        <div className="pending-test-dialog-header flex items-center justify-between border-b px-5 py-4 rounded-t-2xl">
+        <div className="edit-patient-dialog-header pending-test-dialog-header flex items-center justify-between border-b px-5 py-4 rounded-t-2xl">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Patient management</p>
-            <h2 className="mt-0.5 text-base font-semibold text-white">Edit patient</h2>
+            <p className="edit-patient-dialog-eyebrow text-xs font-semibold uppercase tracking-[0.2em]">Patient management</p>
+            <h2 className="mt-0.5 text-base font-semibold">Edit patient</h2>
           </div>
           <button
             type="button"
@@ -168,14 +168,14 @@ export function EditPatientDialog({ patientId, labId, labName, currentUserId, on
         {/* Body */}
         <div className="flex-1 overflow-y-auto">
           {loading && (
-            <div className="flex items-center justify-center py-16 text-slate-400 text-sm">
+            <div className="edit-patient-dialog-muted flex items-center justify-center py-16 text-sm">
               <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white mr-3" />
               Loading…
             </div>
           )}
 
           {!loading && error && !patient && (
-            <div className="p-6 text-sm text-rose-300">{error}</div>
+            <div className="edit-patient-dialog-error p-6 text-sm">{error}</div>
           )}
 
           {!loading && patient && (
@@ -255,7 +255,7 @@ export function EditPatientDialog({ patientId, labId, labName, currentUserId, on
               </div>
 
               {error && (
-                <div className="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+                <div className="edit-patient-dialog-error mt-4 rounded-xl border px-4 py-3 text-sm">
                   {error}
                 </div>
               )}
@@ -265,11 +265,11 @@ export function EditPatientDialog({ patientId, labId, labName, currentUserId, on
 
         {/* Footer */}
         {!loading && patient && (
-          <div className="pending-test-dialog-footer flex items-center justify-end gap-3 border-t px-5 py-4">
+          <div className="edit-patient-dialog-footer pending-test-dialog-footer flex items-center justify-end gap-3 border-t px-5 py-4">
             <button
               type="button"
               onClick={onClose}
-              className="pending-test-dialog-close-button rounded-xl border px-4 py-2 text-sm font-semibold transition"
+              className="edit-patient-dialog-cancel pending-test-dialog-close-button rounded-xl border px-4 py-2 text-sm font-semibold transition"
             >
               Cancel
             </button>
@@ -277,7 +277,7 @@ export function EditPatientDialog({ patientId, labId, labName, currentUserId, on
               type="submit"
               form="edit-patient-form"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl border border-emerald-500/50 bg-emerald-600/60 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+              className="edit-patient-dialog-submit flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
             >
               {saving && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />}
               Update patient

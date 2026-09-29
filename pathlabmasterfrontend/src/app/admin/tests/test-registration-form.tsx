@@ -92,8 +92,7 @@ export function TestRegistrationForm({
         `${test.testName} ${displayTestCode(test)} ${test.serviceName ?? ""}`
           .toLowerCase()
           .includes(query),
-      )
-      .slice(0, 8);
+      );
   }, [activeRow, availableTests, rows, searches, alreadyRegisteredKeys]);
 
   function removeRow(index: number) {
@@ -202,21 +201,6 @@ export function TestRegistrationForm({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/8">
-            {/* Already-registered tests — locked, non-removable */}
-            {alreadyRegisteredKeys.map((testName) => (
-              <tr key={`locked-${testName}`} className="test-request-table-row border-b opacity-50">
-                <td className="px-3 py-3 align-middle text-slate-500">
-                  <FiLock className="h-4 w-4" />
-                </td>
-                <td className="px-4 py-3 text-slate-300" colSpan={4}>
-                  {testName}
-                  <span className="ml-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
-                    Already registered
-                  </span>
-                </td>
-              </tr>
-            ))}
-
             {/* New test rows */}
             {rows.map((test, index) => (
               <tr
@@ -263,7 +247,7 @@ export function TestRegistrationForm({
                     />
                   </div>
                   {activeRow === index && filteredTests.length > 0 && (
-                    <div className="test-autocomplete-menu absolute left-4 right-4 top-[calc(100%-0.5rem)] z-20 overflow-hidden rounded-lg border shadow-xl">
+                    <div className="test-autocomplete-menu absolute left-4 right-4 top-[calc(100%-0.5rem)] z-20 max-h-64 overflow-y-auto overscroll-contain rounded-lg border shadow-xl">
                       {filteredTests.map((option) => (
                         <button
                           type="button"
@@ -291,6 +275,21 @@ export function TestRegistrationForm({
                 </td>
                 <td className="px-4 py-3 text-right align-top text-slate-200" data-label="Amount">
                   {test ? displayAmount(test) : "-"}
+                </td>
+              </tr>
+            ))}
+
+            {/* Already-registered tests stay below the rows for adding new tests. */}
+            {alreadyRegisteredKeys.map((testName) => (
+              <tr key={`locked-${testName}`} className="test-request-table-row border-b opacity-50">
+                <td className="px-3 py-3 align-middle text-slate-500">
+                  <FiLock className="h-4 w-4" />
+                </td>
+                <td className="px-4 py-3 text-slate-300" colSpan={4}>
+                  {testName}
+                  <span className="ml-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-slate-400">
+                    Already registered
+                  </span>
                 </td>
               </tr>
             ))}

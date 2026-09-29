@@ -113,6 +113,7 @@ function evaluateFormula(formula: string, nameToValue: Map<string, string>): str
 function computeFormulaValues(
   parameters: PendingParameter[],
   currentValues: Map<number, string>,
+  formulaOverrides: Record<number, string> = {},
 ): Map<number, string> {
   const sorted = [...parameters].sort((a, b) => a.sequence - b.sequence);
   // Build name→value as we process in order (so earlier values feed later formulas)
@@ -123,7 +124,7 @@ function computeFormulaValues(
     const currentVal = currentValues.get(p.sequence) ?? p.value ?? "";
 
     if (p.formula && p.formula.trim()) {
-      const computed = evaluateFormula(p.formula, nameToValue);
+      const computed = formulaOverrides[p.sequence] ?? evaluateFormula(p.formula, nameToValue);
       result.set(p.sequence, computed);
       // Use computed value for downstream formulas
       nameToValue.set(p.parameterName, computed);
@@ -190,6 +191,7 @@ export function PendingTestsEditor({
   const [boldMap, setBoldMap] = useState<Record<number, boolean>>({});
   const [oorMap, setOorMap] = useState<Record<number, boolean>>({});
   const [formulaValueMap, setFormulaValueMap] = useState<Map<number, string>>(new Map());
+  const [formulaOverrides, setFormulaOverrides] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState<SaveAction | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
@@ -229,6 +231,7 @@ export function PendingTestsEditor({
     setBoldMap(boldSeed);
     setOorMap(oorSeed);
     setFormulaValueMap(formulaSeed);
+    setFormulaOverrides({});
     setApiError(null);
     setShowPrintOptions(false);
     setIncludeHeader(false);
@@ -240,7 +243,11 @@ export function PendingTestsEditor({
     setBoldMap((prev) => ({ ...prev, [sequence]: isBold }));
   }
 
-  function recalculateFormulas(changedSequence: number, newValue: string) {
+  function recalculateFormulas(
+    changedSequence: number,
+    newValue: string,
+    formulaOverridesOverride?: Record<number, string>,
+  ) {
     if (!activeTest) return;
     // Build current values: inputRefs for non-formula params, override with the change
     const currentValues = new Map<number, string>();
@@ -249,7 +256,11 @@ export function PendingTestsEditor({
       const inputVal = inputRefs.current[p.sequence]?.value ?? p.value ?? "";
       currentValues.set(p.sequence, p.sequence === changedSequence ? newValue : inputVal);
     }
-    const newFormulaMap = computeFormulaValues(activeTest.parameters, currentValues);
+    const newFormulaMap = computeFormulaValues(
+      activeTest.parameters,
+      currentValues,
+      formulaOverridesOverride ?? formulaOverrides,
+    );
     setFormulaValueMap(newFormulaMap);
     // Update OOR for formula params
     setOorMap((prev) => {
@@ -277,7 +288,7 @@ export function PendingTestsEditor({
         );
       }
     }
-    const finalFormulaMap = computeFormulaValues(activeTest.parameters, currentValues);
+    const finalFormulaMap = computeFormulaValues(activeTest.parameters, currentValues, formulaOverrides);
 
     return activeTest.parameters.map((p) => ({
       ...p,
@@ -454,12 +465,24 @@ export function PendingTestsEditor({
                       {valueRequired && (
                         <>
                           {isFormula ? (
-                            // Formula parameter — read-only, auto-computed
-                            <div className={`pending-test-parameter-input flex w-full items-center rounded-lg border px-3 py-2.5${isOor ? " is-out-of-range" : ""}`}>
-                              <span className={`flex-1 text-sm${isBold ? " font-semibold" : ""}`}>
-                                {formulaValue || <span className="opacity-40">—</span>}
-                              </span>
-                              <span className="ml-2 shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
+                            <div className="relative">
+                              <input
+                                ref={(el) => {
+                                  inputRefs.current[parameter.sequence] = el;
+                                }}
+                                value={formulaOverrides[parameter.sequence] ?? formulaValue}
+                                type={parameter.dataType?.toLowerCase() === "number" ? "number" : "text"}
+                                min={parameter.lowerRange ?? undefined}
+                                max={parameter.upperRange ?? undefined}
+                                onChange={(event) => {
+                                  const nextOverrides = { ...formulaOverrides, [parameter.sequence]: event.target.value };
+                                  setFormulaOverrides(nextOverrides);
+                                  recalculateFormulas(parameter.sequence, event.target.value, nextOverrides);
+                                }}
+                                className={`pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 pr-14 outline-none${isBold ? " font-semibold" : ""}${isOor ? " is-out-of-range" : ""}`}
+                                aria-label={`${parameter.parameterName} (auto-filled, editable)`}
+                              />
+                              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-300">
                                 Auto
                               </span>
                             </div>
