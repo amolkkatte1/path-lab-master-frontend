@@ -12,7 +12,6 @@ import {
   FiClipboard,
   FiClock,
   FiFileText,
-  FiPlus,
   FiUserPlus,
 } from "react-icons/fi";
 import { TbCurrencyRupee } from "react-icons/tb";
@@ -172,6 +171,7 @@ export default async function AdminDashboard() {
     value: string;
     detail: string;
     blink?: boolean;
+    showPayNow?: boolean;
     icon: typeof FiActivity;
     color: string;
   }> = [
@@ -204,6 +204,7 @@ export default async function AdminDashboard() {
       detail: subscriptionDetail,
       // blink when expiry <= 5 days
       blink: subscriptionExpiryDays !== null ? subscriptionExpiryDays <= 5 : false,
+      showPayNow: subscriptionExpiryDays !== null ? subscriptionExpiryDays <= 5 : false,
       icon: FiAlertCircle,
       color: "text-rose-300",
     },
@@ -234,19 +235,53 @@ export default async function AdminDashboard() {
       </div>
 
       <section className="mx-1 rounded-2xl flex snap-x snap-mandatory gap-3 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 sm:pb-0 xl:grid-cols-4 bg-none">
-        {adminHighlights.map(({ label, value, detail, blink, icon: Icon, color }) => (
-          <article
-            key={label}
-            className="min-w-[calc(50vw-3rem)] snap-start rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)] sm:min-w-0"
-          >
-            <div className="flex items-start justify-between">
-              <p className="text-sm text-slate-400">{label}</p>
-              <Icon className={`h-5 w-5 ${color}`} />
-            </div>
-            <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
-            <p className={`mt-2 text-xs ${color} ${blink ? "blink-red" : ""}`}>{detail}</p>
-          </article>
-        ))}
+        {adminHighlights.map(({ label, value, detail, blink, showPayNow, icon: Icon, color }) => {
+          const isSubscriptionCard = label === "Patient Count Allotted";
+
+          return (
+            <article
+              key={label}
+              className="min-w-[calc(50vw-3rem)] snap-start rounded-2xl border border-white/10 bg-white/8 p-4 shadow-[0_16px_40px_rgba(2,6,23,0.15)] sm:min-w-0"
+            >
+              <div className="flex items-start justify-between">
+                <p className="text-sm text-slate-400">{label}</p>
+                <Icon className={`h-5 w-5 ${color}`} />
+              </div>
+
+              {!isSubscriptionCard ? (
+                <>
+                  <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
+                  <div className="mt-2 space-y-2">
+                    <p className={`text-xs ${color} ${blink ? "blink-red" : ""}`}>{detail}</p>
+                    {showPayNow ? (
+                      <Link
+                        href="/admin/subscription"
+                        className="inline-flex items-center justify-center rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-400"
+                      >
+                        Pay Now
+                      </Link>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mt-1 text-3xl font-semibold text-white">{value}</p>
+                  <div className="mt-2 space-y-2">
+                    <p className={`text-xs ${color} ${blink ? "blink-red" : ""}`}>{detail}</p>
+                    {showPayNow ? (
+                      <Link
+                        href="/admin/subscription"
+                        className="inline-flex items-center justify-center rounded-lg bg-rose-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-rose-400"
+                      >
+                        Pay Now
+                      </Link>
+                    ) : null}
+                  </div>
+                </>
+              )}
+            </article>
+          );
+        })}
       </section>
 
       <article className="dashboard-queue-shell min-w-0 overflow-hidden rounded-2xl border bg-slate-950/45">
