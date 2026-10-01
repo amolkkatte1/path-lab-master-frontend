@@ -109,7 +109,7 @@ export default function SubscriptionPage() {
       <div className="payment-section">
         <div className="bank-details">
           <p className="payment-note">
-            After payment send payment details to Ph: <strong>+91 7722077440</strong>
+            After payment send payment details to Ph: <strong>+91 7972925658</strong>
           </p>
 
           <p>
