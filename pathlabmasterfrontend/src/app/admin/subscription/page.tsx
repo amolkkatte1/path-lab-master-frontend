@@ -113,23 +113,23 @@ export default function SubscriptionPage() {
           </p>
 
           <p>
-            <strong>Bank Name :</strong> HDFC Bank Ltd
+            <strong>Bank Name :</strong> State Bank of India
           </p>
 
           <p>
-            <strong>Company :</strong> Genex Healthcare Pvt Ltd
+            <strong>Name :</strong> Shivani Shivalinga Mahajan
           </p>
 
           <p>
-            <strong>A/C No :</strong> 50200017100308
+            <strong>A/C No :</strong> 62369862204
           </p>
 
           <p>
-            <strong>IFSC Code :</strong> HDFC0000104
+            <strong>IFSC Code :</strong> SBIN0020307
           </p>
 
           <p>
-            <strong>Branch :</strong> Shankar Seth Road, Pune - 411042, MH,
+            <strong>Branch :</strong> Tamsa Nanded - 431713, MH,
             India
           </p>
         </div>
