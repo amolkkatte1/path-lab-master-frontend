@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  API_BASE_URL,
   API_ENDPOINTS,
   getDoctorListByLabId,
   getPendingReportsByPatientId,
@@ -1283,6 +1284,60 @@ export async function getReportList(filters: ReportListFilters = {}) {
     return { ok: true as const, reports: payload.data ?? [] };
   } catch {
     return { ok: false as const, reports: [] as ReportListItem[] };
+  }
+}
+
+function buildReportExportQuery(filters: ReportListFilters = {}, labId: number | string) {
+  const regNo = reportFilterValue(filters.regNo);
+  const doctorId = reportFilterValue(filters.doctorId);
+  const params = new URLSearchParams({
+    fromDate: reportDate(filters.fromDate),
+    toDate: reportDate(filters.toDate),
+    labId: String(labId),
+    firstName: reportFilterValue(filters.firstName) ?? "",
+    lastName: reportFilterValue(filters.lastName) ?? "",
+    patientId: regNo ?? "",
+    doctorName: reportFilterValue(filters.doctor) ?? "",
+    doctorId: doctorId ?? "",
+  });
+
+  return params.toString();
+}
+
+export async function generateReportExportFile(
+  kind: "pdf" | "xls",
+  filters: ReportListFilters = {},
+): Promise<{ ok: true; mimeType: string; data: number[]; filename: string } | { ok: false; error: string }> {
+  const currentUser = await requireUserType("Administrator");
+  const query = buildReportExportQuery(filters, currentUser.labId);
+  const endpoint = kind === "pdf"
+    ? `${API_BASE_URL}/report/generate/pdf?${query}`
+    : `${API_BASE_URL}/report/generate?${query}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: kind === "pdf" ? "application/pdf" : "application/vnd.ms-excel, application/octet-stream",
+      },
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `The report service returned ${response.status}.` };
+    }
+
+    const mimeType = response.headers.get("content-type") || (kind === "pdf" ? "application/pdf" : "application/vnd.ms-excel");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+
+    return {
+      ok: true,
+      mimeType,
+      data: Array.from(bytes),
+      filename: kind === "pdf" ? "report.pdf" : "report.xls",
+    };
+  } catch {
+    return { ok: false, error: "Unable to connect to the report service." };
   }
 }
 

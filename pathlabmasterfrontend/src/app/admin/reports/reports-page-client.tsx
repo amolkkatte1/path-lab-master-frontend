@@ -463,6 +463,22 @@ export default function ReportsPageClient({
     setPrintDialog({ row, data: result.data });
   }
 
+  function handleExport(kind: "pdf" | "xls") {
+    const params = new URLSearchParams({
+      fromDate: filters.fromDate || "",
+      toDate: filters.toDate || "",
+      labId: String(labId),
+      firstName: filters.firstName || "",
+      lastName: filters.lastName || "",
+      patientId: filters.regNo || "",
+      doctorName: filters.doctor || "",
+      doctorId: filters.doctorId || "",
+    });
+
+    const url = `/api/report/export/${kind}?${params.toString()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
   function doPrint(mode: "individual" | "grouped") {
     if (!printDialog) return;
     const { data } = printDialog;
@@ -612,6 +628,7 @@ export default function ReportsPageClient({
 
               <button
                 type="button"
+                onClick={() => void handleExport("pdf")}
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               >
                 <FiFileText className="h-4 w-4" />
@@ -620,6 +637,7 @@ export default function ReportsPageClient({
 
               <button
                 type="button"
+                onClick={() => void handleExport("xls")}
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               >
                 <FiDownload className="h-4 w-4" />
