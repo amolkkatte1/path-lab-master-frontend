@@ -65,9 +65,9 @@ function ReportDateInput({
     if (!picker) return;
     try {
       if (typeof picker.showPicker === "function") picker.showPicker();
-      else picker.click();
+      else picker.focus();
     } catch {
-      picker.click();
+      picker.focus();
     }
   }
 
@@ -112,7 +112,8 @@ function ReportDateInput({
         min={min}
         max={max}
         onChange={(event) => onChange(event.target.value)}
-        className="pointer-events-none absolute left-1 top-1/2 h-9 w-9 -translate-y-1/2 opacity-0"
+        onClick={openDatePicker}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
         aria-label="Choose date"
       />
     </div>
