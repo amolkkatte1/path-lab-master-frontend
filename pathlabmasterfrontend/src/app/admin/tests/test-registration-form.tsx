@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FiCheck, FiLoader, FiLock, FiSearch, FiX } from "react-icons/fi";
-import { registerReport, addReport } from "@/app/actions";
+import { registerReportWithBilling } from "@/app/actions";
 
 
 export type AvailableTest = {
@@ -55,6 +55,12 @@ export function TestRegistrationForm({
   const [activeRow, setActiveRow] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
+  const [billingDetails, setBillingDetails] = useState({
+    paymentMode: "Cash",
+    discount: "0",
+    paymentReceived: "0",
+    collectedByDoctor: "0",
+  });
 
   useEffect(() => {
     function closeDropdown(event: PointerEvent) {
@@ -138,10 +144,19 @@ export function TestRegistrationForm({
     setError("");
   }
 
+  const selectedTests = rows.filter((test): test is AvailableTest => test !== null);
+  const totalAmount = selectedTests.reduce((sum, test) => {
+    const amount = Number(test.testCharges ?? 0);
+    return sum + (Number.isFinite(amount) ? amount : 0);
+  }, 0);
+  const discountAmount = Number(billingDetails.discount || 0);
+  const paymentReceived = Number(billingDetails.paymentReceived || 0);
+  const collectedByDoctor = Number(billingDetails.collectedByDoctor || 0);
+  const totalNetAmount = Math.max(totalAmount - discountAmount, 0);
+  const totalReceived = paymentReceived + collectedByDoctor;
+  const paymentDue = Math.max(totalNetAmount - totalReceived, 0);
+
   async function saveTests() {
-    const selectedTests = rows.filter(
-      (test): test is AvailableTest => test !== null,
-    );
     if (selectedTests.length === 0) {
       setError("Select at least one new test before saving.");
       return;
@@ -150,13 +165,17 @@ export function TestRegistrationForm({
     setIsSaving(true);
     setError("");
     try {
-      // Use addReport when the patient already has tests registered,
-      // registerReport when this is the first registration.
-      const action = hasExistingTests ? addReport : registerReport;
-      const result = await action({
+      const result = await registerReportWithBilling({
         patientId,
         testList: selectedTests as unknown as Array<Record<string, unknown>>,
+        paymentMode: billingDetails.paymentMode,
+        totalAmount,
+        discount: billingDetails.discount,
+        paymentReceived: billingDetails.paymentReceived,
+        collectedByDoctor: billingDetails.collectedByDoctor,
+        paymentDue,
       });
+
       if (!result.ok) throw new Error(result.error);
       router.push("/admin");
     } catch (requestError) {
@@ -295,6 +314,79 @@ export function TestRegistrationForm({
             ))}
           </tbody>
         </table>
+      </div>
+
+      <div className="dark-mode-billing-card mt-5 rounded-xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur-sm">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
+          <label className="block text-sm font-medium billing-input-label">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]">Payment Mode</span>
+            <select
+              value={billingDetails.paymentMode}
+              onChange={(event) => setBillingDetails((current) => ({ ...current, paymentMode: event.target.value }))}
+              className="billing-input-field w-full rounded-md border px-3 py-2.5 outline-none transition"
+            >
+              <option value="Cash">Cash</option>
+              <option value="Card">Card</option>
+              <option value="UPI">UPI</option>
+              <option value="Net Banking">Net Banking</option>
+            </select>
+          </label>
+
+          <label className="block text-sm font-medium billing-input-label">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]">Discount</span>
+            <input
+              type="number"
+              step="0.01"
+              value={billingDetails.discount}
+              onChange={(event) => setBillingDetails((current) => ({ ...current, discount: event.target.value }))}
+              className="billing-input-field w-full rounded-md border px-3 py-2.5 outline-none transition"
+              placeholder="0.00"
+            />
+          </label>
+
+          <label className="block text-sm font-medium billing-input-label">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]">Payment Received</span>
+            <input
+              type="number"
+              step="0.01"
+              value={billingDetails.paymentReceived}
+              onChange={(event) => setBillingDetails((current) => ({ ...current, paymentReceived: event.target.value }))}
+              className="billing-input-field w-full rounded-md border px-3 py-2.5 outline-none transition"
+              placeholder="0.00"
+            />
+          </label>
+
+          <label className="block text-sm font-medium billing-input-label">
+            <span className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em]">Collected by Doctor</span>
+            <input
+              type="number"
+              step="0.01"
+              value={billingDetails.collectedByDoctor}
+              onChange={(event) => setBillingDetails((current) => ({ ...current, collectedByDoctor: event.target.value }))}
+              className="billing-input-field w-full rounded-md border px-3 py-2.5 outline-none transition"
+              placeholder="0.00"
+            />
+          </label>
+        </div>
+
+        <div className="billing-summary-box mt-5 ml-auto w-full max-w-md">
+          <div className="billing-summary-row">
+            <span>Total Amount:</span>
+            <strong>{totalAmount.toFixed(2)}</strong>
+          </div>
+          <div className="billing-summary-row billing-summary-row-net">
+            <span>Total Net Amount:</span>
+            <strong>{totalNetAmount.toFixed(2)}</strong>
+          </div>
+          <div className="billing-summary-row">
+            <span>Received Amount:</span>
+            <strong>{totalReceived.toFixed(2)}</strong>
+          </div>
+          <div className="billing-summary-row billing-summary-row-due">
+            <span>Payment Due:</span>
+            <strong>{paymentDue.toFixed(2)}</strong>
+          </div>
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap justify-end gap-2">

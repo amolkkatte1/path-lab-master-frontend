@@ -30,6 +30,8 @@ export const API_ENDPOINTS = {
   registerReport: `${API_BASE_URL}/report/register`,
   addReport: `${API_BASE_URL}/report/add`,
   saveReport: `${API_BASE_URL}/report/save`,
+  reportBilling: `${API_BASE_URL}/report/billing`,
+  billingCreate: `${API_BASE_URL}/billing/create`,
   reportListFilter: `${API_BASE_URL}/report/list/filter`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,

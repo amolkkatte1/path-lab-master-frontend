@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  API_BASE_URL,
   API_ENDPOINTS,
   getDoctorListByLabId,
   getPendingReportsByPatientId,
@@ -1133,6 +1134,114 @@ export async function addReport({ patientId, testList }: RegisterReportInput) {
   }
 }
 
+export async function registerReportWithBilling({
+  patientId,
+  testList,
+  paymentMode = "Cash",
+  totalAmount,
+  discount = "0",
+  paymentReceived = "0",
+  collectedByDoctor = "0",
+  paymentDue,
+}: {
+  patientId: string;
+  testList: Array<Record<string, unknown>>;
+  paymentMode?: string;
+  totalAmount: number | string;
+  discount?: number | string;
+  paymentReceived?: number | string;
+  collectedByDoctor?: number | string;
+  paymentDue?: number | string;
+}) {
+  const currentUser = await requireUserType("Administrator");
+
+  const registrationResult = await registerReport({ patientId, testList });
+  if (!registrationResult.ok) {
+    return registrationResult;
+  }
+
+  let patientDetails: { doctorName?: string; doctorId?: number | string; labId?: number | string } | null = null;
+
+  try {
+    const patientResponse = await fetch(API_ENDPOINTS.getPatient, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload({ patientId }, ["patientId"]),
+      cache: "no-store",
+    });
+
+    if (patientResponse.ok) {
+      const patientPayload = await parseApiResponse<{ data?: { doctorName?: string; doctorId?: number | string; labId?: number | string } }>(patientResponse);
+      patientDetails = (patientPayload as { data?: { doctorName?: string; doctorId?: number | string; labId?: number | string } }).data ?? null;
+    }
+  } catch {
+    patientDetails = null;
+  }
+
+  const numericTotalAmount = Number(totalAmount ?? 0) || 0;
+  const numericDiscount = Number(discount ?? 0) || 0;
+  const numericPaymentReceived = Number(paymentReceived ?? 0) || 0;
+  const numericCollectedByDoctor = Number(collectedByDoctor ?? 0) || 0;
+  const computedDue = typeof paymentDue === "number" || typeof paymentDue === "string"
+    ? Number(paymentDue ?? 0)
+    : Math.max((numericTotalAmount - numericDiscount) - (numericPaymentReceived + numericCollectedByDoctor), 0);
+
+  const testMap = Object.fromEntries(
+    testList.map((test) => {
+      const name = String(test.testName ?? "").trim();
+      const amount = Number(test.testCharges ?? 0) || 0;
+      return [name, amount];
+    }).filter(([name]) => name),
+  );
+
+  const now = new Date();
+  const billId = Number(
+    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`,
+  );
+
+  const payload = {
+    billId,
+    patientId,
+    doctorName: patientDetails?.doctorName ?? "",
+    doctorId: patientDetails?.doctorId ?? "",
+    labId: patientDetails?.labId ?? currentUser.labId,
+    testList: testMap,
+    totalAmount: numericTotalAmount,
+    paymentReceived: numericPaymentReceived,
+    paymentDue: computedDue,
+    discount: numericDiscount,
+    collectedByDoctor: numericCollectedByDoctor,
+    createdBy: currentUser.userId,
+    updatedBy: currentUser.userId,
+    createdAt: now.toISOString().slice(0, 19).replace("T", " "),
+    updatedAt: now.toISOString().slice(0, 19).replace("T", " "),
+  };
+
+  try {
+    const response = await fetch(API_ENDPOINTS.billingCreate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, [
+        "billId",
+        "patientId",
+        "doctorId",
+        "labId",
+        "createdBy",
+        "updatedBy",
+      ]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, error: `Billing save failed (${response.status}).` };
+    }
+
+    return { ok: true as const, payload: await parseApiResponse<unknown>(response) };
+  } catch {
+    return { ok: false as const, error: "Unable to save billing details." };
+  }
+}
+
 export type SaveReportPayload = {
   reportId: string;
   patientId: string;
@@ -1283,6 +1392,60 @@ export async function getReportList(filters: ReportListFilters = {}) {
     return { ok: true as const, reports: payload.data ?? [] };
   } catch {
     return { ok: false as const, reports: [] as ReportListItem[] };
+  }
+}
+
+function buildReportExportQuery(filters: ReportListFilters = {}, labId: number | string) {
+  const regNo = reportFilterValue(filters.regNo);
+  const doctorId = reportFilterValue(filters.doctorId);
+  const params = new URLSearchParams({
+    fromDate: reportDate(filters.fromDate),
+    toDate: reportDate(filters.toDate),
+    labId: String(labId),
+    firstName: reportFilterValue(filters.firstName) ?? "",
+    lastName: reportFilterValue(filters.lastName) ?? "",
+    patientId: regNo ?? "",
+    doctorName: reportFilterValue(filters.doctor) ?? "",
+    doctorId: doctorId ?? "",
+  });
+
+  return params.toString();
+}
+
+export async function generateReportExportFile(
+  kind: "pdf" | "xls",
+  filters: ReportListFilters = {},
+): Promise<{ ok: true; mimeType: string; data: number[]; filename: string } | { ok: false; error: string }> {
+  const currentUser = await requireUserType("Administrator");
+  const query = buildReportExportQuery(filters, currentUser.labId);
+  const endpoint = kind === "pdf"
+    ? `${API_BASE_URL}/report/generate/pdf?${query}`
+    : `${API_BASE_URL}/report/generate?${query}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "GET",
+      cache: "no-store",
+      headers: {
+        Accept: kind === "pdf" ? "application/pdf" : "application/vnd.ms-excel, application/octet-stream",
+      },
+    });
+
+    if (!response.ok) {
+      return { ok: false, error: `The report service returned ${response.status}.` };
+    }
+
+    const mimeType = response.headers.get("content-type") || (kind === "pdf" ? "application/pdf" : "application/vnd.ms-excel");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+
+    return {
+      ok: true,
+      mimeType,
+      data: Array.from(bytes),
+      filename: kind === "pdf" ? "report.pdf" : "report.xls",
+    };
+  } catch {
+    return { ok: false, error: "Unable to connect to the report service." };
   }
 }
 

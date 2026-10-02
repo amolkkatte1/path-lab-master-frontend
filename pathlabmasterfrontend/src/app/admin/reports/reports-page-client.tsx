@@ -28,6 +28,21 @@ const initialFilters = {
   doctorId: "",
 };
 
+function buildFilterState(defaultFromDate?: string, defaultToDate?: string) {
+  const fromDate = defaultFromDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultFromDate)
+    ? defaultFromDate
+    : initialFilters.fromDate;
+  const toDate = defaultToDate && /^\d{4}-\d{2}-\d{2}$/.test(defaultToDate)
+    ? defaultToDate
+    : fromDate;
+
+  return {
+    ...initialFilters,
+    fromDate,
+    toDate,
+  };
+}
+
 function formatDateForDisplay(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
@@ -128,6 +143,8 @@ type ReportsPageClientProps = {
   labId: string;
   labName: string;
   currentUserId: string;
+  defaultFromDate?: string;
+  defaultToDate?: string;
 };
 
 function DoctorFilterSelector({
@@ -366,10 +383,12 @@ export default function ReportsPageClient({
   labId,
   labName,
   currentUserId,
+  defaultFromDate,
+  defaultToDate,
 }: Readonly<ReportsPageClientProps>) {
   const router = useRouter();
   const [rows, setRows] = useState<ReportRow[]>(() => initialReports.map(mapReportApiItem));
-  const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState(() => buildFilterState(defaultFromDate, defaultToDate));
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [actionMenuRow, setActionMenuRow] = useState<ReportRow | null>(null);
   const [editPatientId, setEditPatientId] = useState<string | null>(null);
@@ -424,9 +443,10 @@ export default function ReportsPageClient({
   }, [filters, rows]);
 
   const clearFilters = async () => {
-    setFilters(initialFilters);
+    const resetFilters = buildFilterState(defaultFromDate, defaultToDate);
+    setFilters(resetFilters);
     setDateRangeError(null);
-    const result = await getReportList(initialFilters);
+    const result = await getReportList(resetFilters);
     setRows(result.reports.map(mapReportApiItem));
   };
 
@@ -442,6 +462,22 @@ export default function ReportsPageClient({
     setSelectedTests(new Set(completedKeys));
     setIncludeHeader(false);
     setPrintDialog({ row, data: result.data });
+  }
+
+  function handleExport(kind: "pdf" | "xls") {
+    const params = new URLSearchParams({
+      fromDate: filters.fromDate || "",
+      toDate: filters.toDate || "",
+      labId: String(labId),
+      firstName: filters.firstName || "",
+      lastName: filters.lastName || "",
+      patientId: filters.regNo || "",
+      doctorName: filters.doctor || "",
+      doctorId: filters.doctorId || "",
+    });
+
+    const url = `/api/report/export/${kind}?${params.toString()}`;
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   function doPrint(mode: "individual" | "grouped") {
@@ -593,6 +629,7 @@ export default function ReportsPageClient({
 
               <button
                 type="button"
+                onClick={() => void handleExport("pdf")}
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               >
                 <FiFileText className="h-4 w-4" />
@@ -601,6 +638,7 @@ export default function ReportsPageClient({
 
               <button
                 type="button"
+                onClick={() => void handleExport("xls")}
                 className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-200 transition hover:bg-emerald-500/20"
               >
                 <FiDownload className="h-4 w-4" />

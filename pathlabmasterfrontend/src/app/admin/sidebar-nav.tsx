@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiBarChart2, FiClipboard, FiFileText, FiHome, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
+import { FiBarChart2, FiClipboard, FiFileText, FiHome, FiPackage, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: FiHome },
@@ -11,6 +11,7 @@ const items = [
   // { href: "/admin/tests", label: "Test Requests", icon: FiClipboard },
   { href: "/admin/reports", label: "Reports", icon: FiFileText },
   { href: "/admin/analytics", label: "Analytics", icon: FiBarChart2 },
+  { href: "/admin/subscription", label: "Subscriptions", icon: FiPackage },
   { href: "/admin/settings", label: "Settings", icon: FiSettings },
 ];
 
