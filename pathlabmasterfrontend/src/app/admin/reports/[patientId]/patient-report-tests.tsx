@@ -82,6 +82,9 @@ export default function PatientReportTests({ report, currentUserId }: Readonly<{
               }}
               reportTopSpace={report.reportTopSpace}
               reportBottomSpace={report.reportBottomSpace}
+              ocrKeysByTest={report.ocrKeysByTest}
+              ocrColumnCount={report.ocrColumnCount}
+              ocrTestKeyMapping={report.ocrTestKeyMapping}
             />
           )}
         </div>

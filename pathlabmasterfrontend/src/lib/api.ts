@@ -32,6 +32,7 @@ export const API_ENDPOINTS = {
   saveReport: `${API_BASE_URL}/report/save`,
   reportBilling: `${API_BASE_URL}/report/billing`,
   billingCreate: `${API_BASE_URL}/billing/create`,
+  ocrExtract: "https://ocr-reader-a5gk.onrender.com/ocr/extract",
   reportListFilter: `${API_BASE_URL}/report/list/filter`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,
@@ -74,6 +75,75 @@ export function getDoctorListByLabId(labId: number | string) {
 
 export function getConfigByLabId(labId: number | string) {
   return `${API_BASE_URL}/config/get/labId/${labId}`;
+}
+
+export function getOcrTestKeysFromConfig(payload: unknown): Record<string, string[]> {
+  const queue: unknown[] = [payload];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+    if (!current || typeof current !== "object") continue;
+
+    const record = current as Record<string, unknown>;
+    for (const [key, value] of Object.entries(record)) {
+      const normalizedKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normalizedKey === "testkeys" && value && typeof value === "object" && !Array.isArray(value)) {
+        const testKeys: Record<string, string[]> = {};
+        for (const [testName, keys] of Object.entries(value as Record<string, unknown>)) {
+          if (!Array.isArray(keys)) continue;
+          const strings = keys.filter((item): item is string => typeof item === "string").map((item) => item.trim()).filter(Boolean);
+          if (strings.length > 0) testKeys[testName] = strings;
+        }
+        return testKeys;
+      }
+      if (value && typeof value === "object") queue.push(value);
+    }
+  }
+
+  return {};
+}
+
+function findConfigValue(payload: unknown, wantedKey: string): unknown {
+  const queue: unknown[] = [payload];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (Array.isArray(current)) {
+      queue.push(...current);
+      continue;
+    }
+    if (!current || typeof current !== "object") continue;
+    for (const [key, value] of Object.entries(current as Record<string, unknown>)) {
+      if (key.toLowerCase().replace(/[^a-z0-9]/g, "") === wantedKey) return value;
+      if (value && typeof value === "object") queue.push(value);
+    }
+  }
+  return undefined;
+}
+
+export function getOcrColumnCountFromConfig(payload: unknown): number {
+  const value = findConfigValue(payload, "columncount");
+  const count = typeof value === "number" ? value : Number(value);
+  return Number.isInteger(count) && count > 0 ? count : 1;
+}
+
+export function getOcrTestKeyMappingFromConfig(
+  payload: unknown,
+): Record<string, Record<string, string>> {
+  const value = findConfigValue(payload, "testkeymapping");
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const mappings: Record<string, Record<string, string>> = {};
+  for (const [testName, mapping] of Object.entries(value as Record<string, unknown>)) {
+    if (!mapping || typeof mapping !== "object" || Array.isArray(mapping)) continue;
+    const entries = Object.entries(mapping as Record<string, unknown>)
+      .filter((entry): entry is [string, string] => typeof entry[1] === "string" && Boolean(entry[1].trim()))
+      .map(([parameterName, ocrKey]) => [parameterName.trim(), ocrKey.trim()] as const);
+    if (entries.length > 0) mappings[testName] = Object.fromEntries(entries);
+  }
+  return mappings;
 }
 
 const LARGE_INTEGER_PATTERN = /:\s*(-?\d{16,})(?=\s*[,}\]])/g;

@@ -2,9 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiCheck, FiPrinter, FiSave, FiX } from "react-icons/fi";
+import { FiCamera, FiCheck, FiImage, FiPrinter, FiSave, FiX } from "react-icons/fi";
 import { saveReport } from "@/app/actions";
-import { getGenerateReportPdfUrl } from "@/lib/api";
+import { API_ENDPOINTS, getGenerateReportPdfUrl } from "@/lib/api";
 import { buildPrintHtml } from "./report-print-view";
 
 export type PendingParameter = {
@@ -28,6 +28,7 @@ export type TestStatus = {
   isSaved: boolean;
   isApproved: boolean;
   isPrinted: boolean;
+  isImageUploadEnable?: boolean;
 };
 
 export type ReportData = {
@@ -137,6 +138,57 @@ function computeFormulaValues(
   return result;
 }
 
+function normalizeOcrKey(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function extractOcrValues(payload: unknown): Record<string, string> {
+  const values: Record<string, string> = {};
+  const ignoredKeys = new Set(["success", "message", "status", "error", "filename"]);
+  const keyNames = ["key", "name", "parameter", "parametername", "label"];
+  const valueNames = ["value", "text", "result", "extractedvalue", "recognizedvalue", "recognizedtext", "ocrvalue"];
+
+  function visit(value: unknown, parentKey = "") {
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          const record = item as Record<string, unknown>;
+          const keyEntry = Object.entries(record).find(([key]) => keyNames.includes(normalizeOcrKey(key)));
+          const valueEntry = Object.entries(record).find(([key]) => valueNames.includes(normalizeOcrKey(key)));
+          if (keyEntry && valueEntry && (typeof valueEntry[1] === "string" || typeof valueEntry[1] === "number")) {
+            values[String(keyEntry[1])] = String(valueEntry[1]);
+            continue;
+          }
+        }
+        visit(item);
+      }
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+
+    const record = value as Record<string, unknown>;
+    for (const [key, item] of Object.entries(record)) {
+      const normalized = normalizeOcrKey(key);
+      if (["data", "result", "results", "values", "extracted", "extraction", "output"].includes(normalized)) {
+        visit(item);
+      } else if ((typeof item === "string" || typeof item === "number") && !ignoredKeys.has(normalized)) {
+        values[key] = String(item);
+      } else if (item && typeof item === "object") {
+        const child = item as Record<string, unknown>;
+        const valueEntry = Object.entries(child).find(([childKey]) => valueNames.includes(normalizeOcrKey(childKey)));
+        if (valueEntry && (typeof valueEntry[1] === "string" || typeof valueEntry[1] === "number")) {
+          values[key || parentKey] = String(valueEntry[1]);
+        } else {
+          visit(item, key);
+        }
+      }
+    }
+  }
+
+  visit(payload);
+  return values;
+}
+
 function openPrintWindow(html: string | string[]) {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const singleHtml = Array.isArray(html) ? html[0] : html;
@@ -178,6 +230,9 @@ export function PendingTestsEditor({
   patientInfo,
   reportTopSpace,
   reportBottomSpace,
+  ocrKeysByTest = {},
+  ocrColumnCount = 1,
+  ocrTestKeyMapping = {},
 }: Readonly<{
   tests: PendingTestGroup[];
   reportData: ReportData;
@@ -186,17 +241,26 @@ export function PendingTestsEditor({
   patientInfo: PatientInfo;
   reportTopSpace: number;
   reportBottomSpace: number;
+  ocrKeysByTest?: Record<string, string[]>;
+  ocrColumnCount?: number;
+  ocrTestKeyMapping?: Record<string, Record<string, string>>;
 }>) {
   const [activeTest, setActiveTest] = useState<PendingTestGroup | null>(null);
   const [boldMap, setBoldMap] = useState<Record<number, boolean>>({});
   const [oorMap, setOorMap] = useState<Record<number, boolean>>({});
   const [formulaValueMap, setFormulaValueMap] = useState<Map<number, string>>(new Map());
   const [formulaOverrides, setFormulaOverrides] = useState<Record<number, string>>({});
+  const [parameterValueOverrides, setParameterValueOverrides] = useState<Record<number, string>>({});
   const [submitting, setSubmitting] = useState<SaveAction | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [ocrError, setOcrError] = useState<string | null>(null);
+  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
   const [includeHeader, setIncludeHeader] = useState(false);
   const inputRefs = useRef<Record<number, HTMLInputElement | null>>({});
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
   function checkOor(value: string, lower: number | null, upper: number | null): boolean {
@@ -232,7 +296,10 @@ export function PendingTestsEditor({
     setOorMap(oorSeed);
     setFormulaValueMap(formulaSeed);
     setFormulaOverrides({});
+    setParameterValueOverrides({});
     setApiError(null);
+    setOcrError(null);
+    setOcrMessage(null);
     setShowPrintOptions(false);
     setIncludeHeader(false);
     inputRefs.current = {};
@@ -247,13 +314,18 @@ export function PendingTestsEditor({
     changedSequence: number,
     newValue: string,
     formulaOverridesOverride?: Record<number, string>,
+    parameterValueOverridesOverride?: Record<number, string>,
   ) {
     if (!activeTest) return;
     // Build current values: inputRefs for non-formula params, override with the change
     const currentValues = new Map<number, string>();
     for (const p of activeTest.parameters) {
       if (p.formula?.trim()) continue; // formula params get their value computed
-      const inputVal = inputRefs.current[p.sequence]?.value ?? p.value ?? "";
+      const inputVal = inputRefs.current[p.sequence]?.value
+        ?? parameterValueOverridesOverride?.[p.sequence]
+        ?? parameterValueOverrides[p.sequence]
+        ?? p.value
+        ?? "";
       currentValues.set(p.sequence, p.sequence === changedSequence ? newValue : inputVal);
     }
     const newFormulaMap = computeFormulaValues(
@@ -283,8 +355,8 @@ export function PendingTestsEditor({
         currentValues.set(
           p.sequence,
           p.isDescriptionParameter
-            ? (p.value ?? "")
-            : (inputRefs.current[p.sequence]?.value ?? p.value ?? ""),
+            ? (parameterValueOverrides[p.sequence] ?? p.value ?? "")
+            : (inputRefs.current[p.sequence]?.value ?? parameterValueOverrides[p.sequence] ?? p.value ?? ""),
         );
       }
     }
@@ -295,10 +367,130 @@ export function PendingTestsEditor({
       value: p.formula?.trim()
         ? (finalFormulaMap.get(p.sequence) ?? p.value ?? "")
         : p.isDescriptionParameter
-          ? (p.value ?? "")
-          : (inputRefs.current[p.sequence]?.value ?? p.value ?? ""),
+          ? (parameterValueOverrides[p.sequence] ?? p.value ?? "")
+          : (inputRefs.current[p.sequence]?.value ?? parameterValueOverrides[p.sequence] ?? p.value ?? ""),
       isBold: boldMap[p.sequence] ?? p.isBold ?? false,
     }));
+  }
+
+  async function handleOcrImage(file: File | undefined) {
+    if (!file || !activeTest) return;
+    setOcrError(null);
+    setOcrMessage(null);
+    const testName = activeTest.code.trim();
+    console.groupCollapsed(`[OCR] ${testName}`);
+    console.info("Image selected", {
+      name: file.name,
+      type: file.type,
+      sizeBytes: file.size,
+    });
+    const normalizedTestName = normalizeOcrKey(testName);
+    const keysForTest = ocrKeysByTest[testName]
+      ?? Object.entries(ocrKeysByTest).find(([configuredTestName]) => normalizeOcrKey(configuredTestName) === normalizedTestName)?.[1]
+      ?? [];
+    const mappingForTest = ocrTestKeyMapping[testName]
+      ?? Object.entries(ocrTestKeyMapping).find(([configuredTestName]) => normalizeOcrKey(configuredTestName) === normalizedTestName)?.[1]
+      ?? {};
+    console.info("OCR configuration", { keys: keysForTest, columnCount: ocrColumnCount, testKeyMapping: mappingForTest });
+    if (keysForTest.length === 0) {
+      const message = `OCR keys are not configured for ${testName}.`;
+      console.error("OCR stopped", message);
+      setOcrError(message);
+      console.groupEnd();
+      return;
+    }
+
+    setIsOcrProcessing(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      formData.append("keys", JSON.stringify(keysForTest));
+      formData.append("columnCount", String(ocrColumnCount));
+
+      console.info("Sending OCR request", {
+        method: "POST",
+        endpoint: API_ENDPOINTS.ocrExtract,
+        fields: ["image", "keys", "columnCount"],
+        keys: keysForTest,
+        columnCount: String(ocrColumnCount),
+      });
+      const response = await fetch(API_ENDPOINTS.ocrExtract, {
+        method: "POST",
+        body: formData,
+      });
+      console.info("OCR HTTP response", { status: response.status, ok: response.ok });
+      const payload: unknown = await response.json();
+      console.info("OCR response body", payload);
+      if (!response.ok) {
+        const responseMessage = payload && typeof payload === "object" && "message" in payload
+          ? String((payload as { message?: unknown }).message ?? "")
+          : "";
+        throw new Error(responseMessage || `Image extraction failed (${response.status}).`);
+      }
+      if (payload && typeof payload === "object" && "status" in payload
+        && String((payload as { status?: unknown }).status).toUpperCase() !== "SUCCESS") {
+        throw new Error("The OCR service could not extract values from this image.");
+      }
+
+      const extractedValues = extractOcrValues(payload);
+      const normalizedValues = new Map(
+        Object.entries(extractedValues).map(([key, value]) => [normalizeOcrKey(key), value] as const),
+      );
+      const normalizedMapping = new Map(
+        Object.entries(mappingForTest).map(([parameterName, ocrKey]) => [normalizeOcrKey(parameterName), normalizeOcrKey(ocrKey)] as const),
+      );
+      const nextParameterOverrides = { ...parameterValueOverrides };
+      // Keep formula values as displayed during OCR autofill. If OCR returned
+      // a value for a formula parameter, show that exact value until a user
+      // manually changes one of its dependencies.
+      const nextFormulaOverrides = { ...formulaOverrides };
+      const nextOorValues: Record<number, boolean> = {};
+      let matchedCount = 0;
+
+      for (const parameter of activeTest.parameters) {
+        const normalizedParameter = normalizeOcrKey(parameter.parameterName);
+        const mappedOcrKey = normalizedMapping.get(normalizedParameter);
+        const extracted = (mappedOcrKey ? normalizedValues.get(mappedOcrKey) : undefined)
+          ?? normalizedValues.get(normalizedParameter);
+        if (extracted === undefined) continue;
+
+        matchedCount += 1;
+        nextParameterOverrides[parameter.sequence] = extracted;
+        if (parameter.formula?.trim()) nextFormulaOverrides[parameter.sequence] = extracted;
+        if (inputRefs.current[parameter.sequence] && !parameter.formula?.trim()) {
+          inputRefs.current[parameter.sequence]!.value = extracted;
+        }
+        nextOorValues[parameter.sequence] = checkOor(extracted, parameter.lowerRange, parameter.upperRange);
+      }
+
+      if (matchedCount === 0) {
+        console.warn("OCR returned values, but none matched the active test parameters", {
+          testKeyMapping: mappingForTest,
+          parameterNames: activeTest.parameters.map((parameter) => parameter.parameterName),
+          extractedKeys: Object.keys(extractedValues),
+        });
+        throw new Error("No image values matched this test's parameters.");
+      }
+
+      console.info("OCR values matched to parameters", {
+        matchedCount,
+        values: Object.fromEntries(
+          activeTest.parameters
+            .filter((parameter) => nextParameterOverrides[parameter.sequence] !== undefined)
+            .map((parameter) => [parameter.parameterName, nextParameterOverrides[parameter.sequence]]),
+        ),
+      });
+      setParameterValueOverrides(nextParameterOverrides);
+      setFormulaOverrides(nextFormulaOverrides);
+      setOorMap((previous) => ({ ...previous, ...nextOorValues }));
+      setOcrMessage(`Filled ${matchedCount} parameter${matchedCount === 1 ? "" : "s"} from the image.`);
+    } catch (error) {
+      setOcrError(error instanceof Error ? error.message : "Unable to extract values from this image.");
+      console.error("OCR request failed", error);
+    } finally {
+      setIsOcrProcessing(false);
+      console.groupEnd();
+    }
   }
 
   async function handleSubmit(action: SaveAction) {
@@ -318,7 +510,10 @@ export function PendingTestsEditor({
 
     const newStatus = {
       ...reportData.status,
-      [activeTest.key]: buildStatusFlags(action),
+      [activeTest.key]: {
+        ...reportData.status[activeTest.key],
+        ...buildStatusFlags(action),
+      },
     };
 
     try {
@@ -434,6 +629,54 @@ export function PendingTestsEditor({
 
             {/* Parameters */}
             <div className="space-y-3 p-5">
+              {reportData.status[activeTest.key]?.isImageUploadEnable === true && (
+                <section className="mb-4 rounded-xl border border-emerald-500/25 bg-emerald-500/5 p-4">
+                  <p className="mb-3 text-sm font-semibold text-white">Upload an image to fill test values</p>
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleOcrImage(event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleOcrImage(event.target.files?.[0]);
+                      event.currentTarget.value = "";
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={isOcrProcessing}
+                      className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/40 bg-emerald-600/70 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-600 disabled:opacity-50"
+                    >
+                      <FiCamera /> Take photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={isOcrProcessing}
+                      className="inline-flex items-center gap-2 rounded-lg border border-white/15 px-3 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <FiImage /> Choose from gallery
+                    </button>
+                  </div>
+                  {isOcrProcessing && <p className="mt-3 text-sm text-slate-400">Reading image values…</p>}
+                  {ocrMessage && <p className="mt-3 text-sm text-emerald-300">{ocrMessage}</p>}
+                  {ocrError && <p role="alert" className="mt-3 text-sm text-rose-300">{ocrError}</p>}
+                </section>
+              )}
+
               {apiError && (
                 <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
                   <FiX className="shrink-0" />
@@ -502,7 +745,10 @@ export function PendingTestsEditor({
                               onChange={(e) => {
                                 const oor = checkOor(e.target.value, parameter.lowerRange, parameter.upperRange);
                                 setOorMap((prev) => ({ ...prev, [parameter.sequence]: oor }));
-                                recalculateFormulas(parameter.sequence, e.target.value);
+                                // A manual dependency edit starts a fresh formula
+                                // calculation, replacing OCR or earlier overrides.
+                                setFormulaOverrides({});
+                                recalculateFormulas(parameter.sequence, e.target.value, {});
                               }}
                               className={`pending-test-parameter-input w-full rounded-lg border px-3 py-2.5 outline-none${isBold ? " font-semibold" : ""}${isOor ? " is-out-of-range" : ""}`}
                             />

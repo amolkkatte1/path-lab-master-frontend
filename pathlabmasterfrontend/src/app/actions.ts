@@ -8,6 +8,9 @@ import {
   getDoctorListByLabId,
   getPendingReportsByPatientId,
   getConfigByLabId,
+  getOcrTestKeysFromConfig,
+  getOcrColumnCountFromConfig,
+  getOcrTestKeyMappingFromConfig,
   parseApiResponse,
   stringifyApiPayload,
 } from "@/lib/api";
@@ -1252,7 +1255,7 @@ export type SaveReportPayload = {
   updatedBy: string;
   createdAt: string;
   updatedAt: string;
-  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean }>;
+  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean; isImageUploadEnable?: boolean }>;
 };
 
 export async function saveReport(payload: SaveReportPayload) {
@@ -1468,7 +1471,10 @@ export type ReportViewData = {
   reportBottomSpace: number;
   createdBy: string;
   updatedBy: string;
-  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean }>;
+  status: Record<string, { isSaved: boolean; isApproved: boolean; isPrinted: boolean; isImageUploadEnable: boolean }>;
+  ocrKeysByTest: Record<string, string[]>;
+  ocrColumnCount: number;
+  ocrTestKeyMapping: Record<string, Record<string, string>>;
   pendingTests: Record<string, Array<{
     parameterName: string;
     value: string | null;
@@ -1518,7 +1524,7 @@ export async function getReportViewData(
       pendingTest?: ReportViewData["pendingTests"];
       completedTest?: Record<string, unknown[]>;
       createdBy?: string; updatedBy?: string;
-      status?: Record<string, { isSaved?: boolean; isApproved?: boolean; isPrinted?: boolean }>;
+      status?: Record<string, { isSaved?: boolean; isApproved?: boolean; isPrinted?: boolean; isImageUploadEnable?: boolean }>;
       createdAt?: string;
     };
 
@@ -1536,7 +1542,7 @@ export async function getReportViewData(
     const [patientPayload, reportPayload, configPayload] = await Promise.all([
       parseApiResponse<{ data?: PatientApiData } | PatientApiData>(patientRes),
       parseApiResponse<{ data?: ReportApiData }>(reportRes),
-      parseApiResponse<{ data?: { reportTopSpace?: number; reportBottomSpace?: number } }>(configRes),
+      parseApiResponse<unknown>(configRes),
     ]);
 
     const p = "firstName" in patientPayload
@@ -1553,6 +1559,7 @@ export async function getReportViewData(
 
     // Retrieve lab name from the current session user
     const sessionUser = await requireUserType("Administrator").catch(() => null);
+    const configData = (configPayload as { data?: { reportTopSpace?: number; reportBottomSpace?: number } }).data;
 
     return {
       ok: true,
@@ -1567,8 +1574,8 @@ export async function getReportViewData(
         doctorName: p.doctorName ?? "",
         patientCreatedAt: p.createdAt ?? "",
         reportCreatedAt: r.createdAt ?? "",
-        reportTopSpace: configPayload.data?.reportTopSpace ?? 0,
-        reportBottomSpace: configPayload.data?.reportBottomSpace ?? 0,
+        reportTopSpace: configData?.reportTopSpace ?? 0,
+        reportBottomSpace: configData?.reportBottomSpace ?? 0,
         createdBy: r.createdBy ?? "",
         updatedBy: r.updatedBy ?? "",
         status: Object.fromEntries(
@@ -1576,8 +1583,12 @@ export async function getReportViewData(
             isSaved: status.isSaved ?? false,
             isApproved: status.isApproved ?? false,
             isPrinted: status.isPrinted ?? false,
+            isImageUploadEnable: status.isImageUploadEnable ?? false,
           }]),
         ),
+        ocrKeysByTest: getOcrTestKeysFromConfig(configPayload),
+        ocrColumnCount: getOcrColumnCountFromConfig(configPayload),
+        ocrTestKeyMapping: getOcrTestKeyMappingFromConfig(configPayload),
         pendingTests: (r.pendingTest ?? {}) as ReportViewData["pendingTests"],
         completedTests: (r.completedTest ?? {}) as ReportViewData["completedTests"],
       },

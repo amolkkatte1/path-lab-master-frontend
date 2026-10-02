@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { FiArrowLeft } from "react-icons/fi";
 
-import { API_ENDPOINTS, getPendingReportsByPatientId, parseApiResponse, stringifyApiPayload, getConfigByLabId } from "@/lib/api";
+import { API_ENDPOINTS, getPendingReportsByPatientId, parseApiResponse, stringifyApiPayload, getConfigByLabId, getOcrTestKeysFromConfig, getOcrColumnCountFromConfig, getOcrTestKeyMappingFromConfig } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import {
   PendingTestsEditor,
@@ -81,19 +81,21 @@ async function getPatientInfo(patientId: string): Promise<PatientInfo> {
   }
 }
 
-async function getLabConfig(labId: number): Promise<{ topSpace: number; bottomSpace: number }> {
+async function getLabConfig(labId: number): Promise<{ topSpace: number; bottomSpace: number; ocrKeysByTest: Record<string, string[]>; ocrColumnCount: number; ocrTestKeyMapping: Record<string, Record<string, string>> }> {
   try {
     const response = await fetch(getConfigByLabId(labId), { cache: "no-store" });
-    if (!response.ok) return { topSpace: 0, bottomSpace: 0 };
-    const payload = await parseApiResponse<{
-      data?: { reportTopSpace?: number; reportBottomSpace?: number };
-    }>(response);
+    if (!response.ok) return { topSpace: 0, bottomSpace: 0, ocrKeysByTest: {}, ocrColumnCount: 1, ocrTestKeyMapping: {} };
+    const payload = await parseApiResponse<unknown>(response);
+    const config = (payload as { data?: { reportTopSpace?: number; reportBottomSpace?: number } }).data;
     return {
-      topSpace: payload.data?.reportTopSpace ?? 0,
-      bottomSpace: payload.data?.reportBottomSpace ?? 0,
+      topSpace: config?.reportTopSpace ?? 0,
+      bottomSpace: config?.reportBottomSpace ?? 0,
+      ocrKeysByTest: getOcrTestKeysFromConfig(payload),
+      ocrColumnCount: getOcrColumnCountFromConfig(payload),
+      ocrTestKeyMapping: getOcrTestKeyMappingFromConfig(payload),
     };
   } catch {
-    return { topSpace: 0, bottomSpace: 0 };
+    return { topSpace: 0, bottomSpace: 0, ocrKeysByTest: {}, ocrColumnCount: 1, ocrTestKeyMapping: {} };
   }
 }
 
@@ -192,6 +194,9 @@ export default async function PendingTestsPage({
         patientInfo={resolvedPatientInfo}
         reportTopSpace={labConfig.topSpace}
         reportBottomSpace={labConfig.bottomSpace}
+        ocrKeysByTest={labConfig.ocrKeysByTest}
+        ocrColumnCount={labConfig.ocrColumnCount}
+        ocrTestKeyMapping={labConfig.ocrTestKeyMapping}
       />
     );
   }
