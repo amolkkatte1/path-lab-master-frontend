@@ -173,6 +173,25 @@ body {
   color: #e2e8f0;
 }
 
+.pending-test-ocr-overlay {
+  background: rgba(2, 6, 23, 0.68);
+}
+
+.pending-test-ocr-loading-card {
+  border-color: rgba(52, 211, 153, 0.28);
+  background-color: #000000;
+  color: #f8fafc;
+}
+
+.pending-test-ocr-loading-description {
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-shell .pending-test-ocr-loading-card {
+  background-color: #000000;
+  color: #f8fafc;
+}
+
 .pending-test-dialog-header {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(15, 23, 42, 0.95);
@@ -458,6 +477,20 @@ body {
   border-color: #cbd5e1;
   background: #ffffff;
   color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-ocr-overlay {
+  background: rgba(15, 23, 42, 0.34);
+}
+
+.theme-light .workspace-shell .pending-test-ocr-loading-card {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .pending-test-ocr-loading-description {
+  color: #475569;
 }
 
 .theme-light .workspace-shell .pending-test-dialog-header {

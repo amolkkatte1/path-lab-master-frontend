@@ -440,10 +440,9 @@ export function PendingTestsEditor({
         Object.entries(mappingForTest).map(([parameterName, ocrKey]) => [normalizeOcrKey(parameterName), normalizeOcrKey(ocrKey)] as const),
       );
       const nextParameterOverrides = { ...parameterValueOverrides };
-      // Keep formula values as displayed during OCR autofill. If OCR returned
-      // a value for a formula parameter, show that exact value until a user
-      // manually changes one of its dependencies.
-      const nextFormulaOverrides = { ...formulaOverrides };
+      // Preserve OCR values for formula parameters. Other formula parameters
+      // are recalculated from the updated dependency values below.
+      const nextFormulaOverrides: Record<number, string> = {};
       const nextOorValues: Record<number, boolean> = {};
       let matchedCount = 0;
 
@@ -483,6 +482,7 @@ export function PendingTestsEditor({
       setParameterValueOverrides(nextParameterOverrides);
       setFormulaOverrides(nextFormulaOverrides);
       setOorMap((previous) => ({ ...previous, ...nextOorValues }));
+      recalculateFormulas(-1, "", nextFormulaOverrides, nextParameterOverrides);
       setOcrMessage(`Filled ${matchedCount} parameter${matchedCount === 1 ? "" : "s"} from the image.`);
     } catch (error) {
       setOcrError(error instanceof Error ? error.message : "Unable to extract values from this image.");
@@ -597,7 +597,17 @@ export function PendingTestsEditor({
           open
           className="fixed inset-0 z-50 m-0 flex h-full w-full items-center justify-center border-0 bg-slate-950/75 p-4 backdrop-blur-sm"
           aria-label={`Edit ${activeTest.code}`}
+          aria-busy={isOcrProcessing}
         >
+          {isOcrProcessing && (
+            <div className="pending-test-ocr-overlay absolute inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-sm" role="status" aria-live="assertive">
+              <div className="pending-test-ocr-loading-card flex w-full max-w-sm flex-col items-center rounded-2xl border px-7 py-8 text-center shadow-2xl">
+                <span className="mb-5 h-12 w-12 animate-spin rounded-full border-4 border-emerald-300/20 border-t-emerald-400" aria-hidden="true" />
+                <p className="pending-test-ocr-loading-title text-base font-semibold">Reading image values</p>
+                <p className="pending-test-ocr-loading-description mt-2 text-sm">Please wait while the test parameters are being filled.</p>
+              </div>
+            </div>
+          )}
           <div className="pending-test-dialog max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl border shadow-2xl">
             {/* Header */}
             <div className="pending-test-dialog-header sticky top-0 z-10 flex items-center justify-between border-b px-5 py-4 backdrop-blur">
@@ -671,7 +681,6 @@ export function PendingTestsEditor({
                       <FiImage /> Choose from gallery
                     </button>
                   </div>
-                  {isOcrProcessing && <p className="mt-3 text-sm text-slate-400">Reading image values…</p>}
                   {ocrMessage && <p className="mt-3 text-sm text-emerald-300">{ocrMessage}</p>}
                   {ocrError && <p role="alert" className="mt-3 text-sm text-rose-300">{ocrError}</p>}
                 </section>
