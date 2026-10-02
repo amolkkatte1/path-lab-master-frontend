@@ -1137,6 +1137,92 @@ export async function addReport({ patientId, testList }: RegisterReportInput) {
   }
 }
 
+export async function getExistingBillingForPatient({
+  patientId,
+  labId,
+}: {
+  patientId: string;
+  labId: number | string;
+}) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/billing/get/labId/${labId}/patientId/${patientId}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await parseApiResponse<Record<string, unknown> | Array<Record<string, unknown>>>(response);
+    if (!payload || (typeof payload !== "object" && !Array.isArray(payload))) {
+      return null;
+    }
+
+    const findBillingRecord = (value: unknown, preferredPatientId?: string): Record<string, unknown> | null => {
+      if (!value || typeof value !== "object") {
+        return null;
+      }
+
+      if (Array.isArray(value)) {
+        const matches = value
+          .map((item) => findBillingRecord(item, preferredPatientId))
+          .filter((item): item is Record<string, unknown> => Boolean(item));
+        return matches.find((item) => String((item.patientId ?? "")).trim() === String(preferredPatientId ?? "").trim()) ?? matches[0] ?? null;
+      }
+
+      const currentValue = value as Record<string, unknown>;
+      const hasBillId = Boolean(
+        currentValue.billId !== undefined &&
+        currentValue.billId !== null &&
+        String(currentValue.billId).trim() !== "",
+      );
+      const matchesPatient = preferredPatientId !== undefined && preferredPatientId !== null && preferredPatientId !== ""
+        ? String(currentValue.patientId ?? "").trim() === String(preferredPatientId).trim()
+        : false;
+
+      if (hasBillId && (preferredPatientId === undefined || preferredPatientId === null || preferredPatientId === "" || matchesPatient)) {
+        return currentValue;
+      }
+
+      if (matchesPatient && !hasBillId) {
+        return currentValue;
+      }
+
+      for (const nested of Object.values(currentValue)) {
+        const match = findBillingRecord(nested, preferredPatientId);
+        if (match) return match;
+      }
+
+      return null;
+    };
+
+    const data = findBillingRecord(payload, patientId);
+    if (!data) {
+      return null;
+    }
+
+    return data as {
+      billId?: number | string;
+      patientId?: number | string;
+      doctorName?: string;
+      doctorId?: number | string;
+      labId?: number | string;
+      testList?: Record<string, number | string> | Array<{ testName?: string; testCharges?: number | string }>;
+      totalAmount?: number | string;
+      paymentReceived?: number | string;
+      paymentDue?: number | string;
+      discount?: number | string;
+      collectedByDoctor?: number | string;
+      createdBy?: number | string;
+      updatedBy?: number | string;
+      createdAt?: string;
+      updatedAt?: string;
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function registerReportWithBilling({
   patientId,
   testList,
@@ -1158,9 +1244,30 @@ export async function registerReportWithBilling({
 }) {
   const currentUser = await requireUserType("Administrator");
 
-  const registrationResult = await registerReport({ patientId, testList });
-  if (!registrationResult.ok) {
-    return registrationResult;
+  if (Array.isArray(testList) && testList.length > 0) {
+    try {
+      const reportStatusResponse = await fetch(
+        getPendingReportsByPatientId(patientId, currentUser.labId),
+        { cache: "no-store" },
+      );
+
+      let hasExistingReport = false;
+
+      if (reportStatusResponse.ok) {
+        const reportStatusPayload = await parseApiResponse<{ statusCode?: number; data?: Record<string, unknown> }>(reportStatusResponse);
+        hasExistingReport = Boolean(reportStatusPayload.data && reportStatusPayload.statusCode !== 0);
+      }
+
+      const reportResult = hasExistingReport
+        ? await addReport({ patientId, testList })
+        : await registerReport({ patientId, testList });
+
+      if (!reportResult.ok) {
+        return reportResult;
+      }
+    } catch {
+      return { ok: false as const, error: "Unable to update the report before billing." };
+    }
   }
 
   let patientDetails: { doctorName?: string; doctorId?: number | string; labId?: number | string } | null = null;
@@ -1181,6 +1288,9 @@ export async function registerReportWithBilling({
     patientDetails = null;
   }
 
+  const labId = patientDetails?.labId ?? currentUser.labId;
+  const existingBilling = await getExistingBillingForPatient({ patientId, labId });
+
   const numericTotalAmount = Number(totalAmount ?? 0) || 0;
   const numericDiscount = Number(discount ?? 0) || 0;
   const numericPaymentReceived = Number(paymentReceived ?? 0) || 0;
@@ -1188,6 +1298,20 @@ export async function registerReportWithBilling({
   const computedDue = typeof paymentDue === "number" || typeof paymentDue === "string"
     ? Number(paymentDue ?? 0)
     : Math.max((numericTotalAmount - numericDiscount) - (numericPaymentReceived + numericCollectedByDoctor), 0);
+
+  const existingEntries = Array.isArray(existingBilling?.testList)
+    ? existingBilling.testList.map((item) => ({
+        name: String((item as { testName?: string }).testName ?? "").trim(),
+        amount: Number((item as { testCharges?: number | string }).testCharges ?? 0) || 0,
+      }))
+    : Object.entries(existingBilling?.testList ?? {}).map(([name, amount]) => ({
+        name: String(name ?? "").trim(),
+        amount: Number(amount ?? 0) || 0,
+      }));
+
+  const existingTestMap = Object.fromEntries(
+    existingEntries.filter(({ name }) => name).map(({ name, amount }) => [name, amount]),
+  );
 
   const testMap = Object.fromEntries(
     testList.map((test) => {
@@ -1197,31 +1321,45 @@ export async function registerReportWithBilling({
     }).filter(([name]) => name),
   );
 
-  const now = new Date();
-  const billId = Number(
-    `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`,
+  const mergedTestMap = { ...existingTestMap, ...testMap };
+
+  const hasExistingBill = Boolean(
+    existingBilling &&
+      existingBilling.billId !== undefined &&
+      existingBilling.billId !== null &&
+      String(existingBilling.billId).trim() !== "",
   );
+
+  const now = new Date();
+  const createdAt = now.toISOString().slice(0, 19).replace("T", " ");
+  const billId = hasExistingBill && existingBilling?.billId
+    ? Number(existingBilling.billId)
+    : Number(
+      `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`,
+    );
 
   const payload = {
     billId,
     patientId,
-    doctorName: patientDetails?.doctorName ?? "",
-    doctorId: patientDetails?.doctorId ?? "",
-    labId: patientDetails?.labId ?? currentUser.labId,
-    testList: testMap,
+    doctorName: patientDetails?.doctorName ?? existingBilling?.doctorName ?? "",
+    doctorId: patientDetails?.doctorId ?? existingBilling?.doctorId ?? "",
+    labId,
+    testList: mergedTestMap,
     totalAmount: numericTotalAmount,
     paymentReceived: numericPaymentReceived,
     paymentDue: computedDue,
     discount: numericDiscount,
     collectedByDoctor: numericCollectedByDoctor,
-    createdBy: currentUser.userId,
+    createdBy: existingBilling?.createdBy ?? currentUser.userId,
     updatedBy: currentUser.userId,
-    createdAt: now.toISOString().slice(0, 19).replace("T", " "),
-    updatedAt: now.toISOString().slice(0, 19).replace("T", " "),
+    createdAt: existingBilling?.createdAt ?? createdAt,
+    updatedAt: createdAt,
   };
 
+  const endpoint = hasExistingBill ? API_ENDPOINTS.billingUpdate : API_ENDPOINTS.billingCreate;
+
   try {
-    const response = await fetch(API_ENDPOINTS.billingCreate, {
+    const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: stringifyApiPayload(payload, [

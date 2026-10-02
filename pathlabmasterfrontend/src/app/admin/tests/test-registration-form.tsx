@@ -25,10 +25,25 @@ export type AvailableTest = {
   updatedAt?: string;
 };
 
+type ExistingBilling = {
+  billId?: number | string;
+  discount?: number | string;
+  paymentReceived?: number | string;
+  collectedByDoctor?: number | string;
+  testList?: Record<string, number | string> | Array<{ testName?: string; testCharges?: number | string }>;
+  totalAmount?: number | string;
+  paymentDue?: number | string;
+  doctorName?: string;
+  doctorId?: number | string;
+  labId?: number | string;
+};
+
 type TestRegistrationFormProps = {
   availableTests: AvailableTest[];
   patientId: string;
+  labId: number | string;
   alreadyRegisteredKeys: string[];
+  existingBilling?: ExistingBilling | null;
 };
 
 function displayTestCode(test: AvailableTest) {
@@ -43,7 +58,9 @@ function displayAmount(test: AvailableTest) {
 export function TestRegistrationForm({
   availableTests,
   patientId,
+  labId,
   alreadyRegisteredKeys,
+  existingBilling,
 }: Readonly<TestRegistrationFormProps>) {
   const router = useRouter();
   const hasExistingTests = alreadyRegisteredKeys.length > 0;
@@ -57,10 +74,21 @@ export function TestRegistrationForm({
   const [error, setError] = useState("");
   const [billingDetails, setBillingDetails] = useState({
     paymentMode: "Cash",
-    discount: "0",
-    paymentReceived: "0",
-    collectedByDoctor: "0",
+    discount: String(existingBilling?.discount ?? "0"),
+    paymentReceived: String(existingBilling?.paymentReceived ?? "0"),
+    collectedByDoctor: String(existingBilling?.collectedByDoctor ?? "0"),
   });
+
+  useEffect(() => {
+    if (existingBilling) {
+      setBillingDetails({
+        paymentMode: "Cash",
+        discount: String(existingBilling.discount ?? "0"),
+        paymentReceived: String(existingBilling.paymentReceived ?? "0"),
+        collectedByDoctor: String(existingBilling.collectedByDoctor ?? "0"),
+      });
+    }
+  }, [existingBilling]);
 
   useEffect(() => {
     function closeDropdown(event: PointerEvent) {
@@ -145,10 +173,36 @@ export function TestRegistrationForm({
   }
 
   const selectedTests = rows.filter((test): test is AvailableTest => test !== null);
-  const totalAmount = selectedTests.reduce((sum, test) => {
-    const amount = Number(test.testCharges ?? 0);
-    return sum + (Number.isFinite(amount) ? amount : 0);
-  }, 0);
+  const mergedBillingTests = useMemo(() => {
+    const merged = new Map<string, number>();
+
+    if (Array.isArray(existingBilling?.testList)) {
+      existingBilling.testList.forEach((entry) => {
+        const key = String((entry as { testName?: string })?.testName ?? "").trim();
+        if (!key) return;
+        merged.set(key, Number((entry as { testCharges?: number | string })?.testCharges ?? 0) || 0);
+      });
+    } else {
+      Object.entries(existingBilling?.testList ?? {}).forEach(([testName, testCharges]) => {
+        const key = String(testName ?? "").trim();
+        if (!key) return;
+        merged.set(key, Number(testCharges ?? 0) || 0);
+      });
+    }
+
+    selectedTests.forEach((test) => {
+      const key = String(test.testName ?? "").trim();
+      if (!key) return;
+      merged.set(key, Number(test.testCharges ?? 0) || 0);
+    });
+
+    return Array.from(merged.entries()).map(([testName, testCharges]) => ({
+      testName,
+      testCharges,
+    }));
+  }, [existingBilling, selectedTests]);
+
+  const totalAmount = mergedBillingTests.reduce((sum, test) => sum + Number(test.testCharges ?? 0), 0);
   const discountAmount = Number(billingDetails.discount || 0);
   const paymentReceived = Number(billingDetails.paymentReceived || 0);
   const collectedByDoctor = Number(billingDetails.collectedByDoctor || 0);
@@ -157,7 +211,7 @@ export function TestRegistrationForm({
   const paymentDue = Math.max(totalNetAmount - totalReceived, 0);
 
   async function saveTests() {
-    if (selectedTests.length === 0) {
+    if (selectedTests.length === 0 && !existingBilling) {
       setError("Select at least one new test before saving.");
       return;
     }

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { API_ENDPOINTS, getPendingReportsByPatientId, parseApiResponse } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
+import { getExistingBillingForPatient } from "@/app/actions";
 import { TestRegistrationForm, type AvailableTest } from "./test-registration-form";
 
 type TestRegistrationPageProps = {
@@ -77,12 +78,14 @@ export default async function TestRegistrationPage({
 
   const { patientId, patientName, mobileNumber } = await searchParams;
 
-  // Run both fetches in parallel when patientId is present
-  const [{ tests, error }, alreadyRegisteredKeys] = await Promise.all([
+  const [{ tests, error }, alreadyRegisteredKeys, existingBilling] = await Promise.all([
     getTests(),
     patientId
       ? getAlreadyRegisteredTestKeys(patientId, user.labId)
       : Promise.resolve([] as string[]),
+    patientId
+      ? getExistingBillingForPatient({ patientId, labId: user.labId })
+      : Promise.resolve(null),
   ]);
 
   let registrationContent: ReactNode;
@@ -105,7 +108,9 @@ export default async function TestRegistrationPage({
         <TestRegistrationForm
           availableTests={tests}
           patientId={patientId}
+          labId={user.labId}
           alreadyRegisteredKeys={alreadyRegisteredKeys}
+          existingBilling={existingBilling}
         />
       </div>
     );
