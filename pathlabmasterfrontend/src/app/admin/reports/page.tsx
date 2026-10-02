@@ -58,14 +58,15 @@ async function getLabDateRange(labId: string) {
 
 export default async function ReportsPage() {
   const user = await requireUserType("Administrator");
-  const [doctorResult, dateRange] = await Promise.all([
+  const today = new Date();
+  const todayString = today.toISOString().slice(0, 10);
+  const [doctorResult, reportResult] = await Promise.all([
     getReportDoctors(),
-    getLabDateRange(String(user.labId)),
+    getReportList({
+      fromDate: todayString,
+      toDate: todayString,
+    }),
   ]);
-  const reportResult = await getReportList({
-    fromDate: dateRange.fromDate,
-    toDate: dateRange.toDate,
-  });
 
   return (
     <ReportsPageClient
@@ -74,8 +75,8 @@ export default async function ReportsPage() {
       labId={String(user.labId)}
       labName={user.labName}
       currentUserId={user.userId}
-      defaultFromDate={dateRange.fromDate}
-      defaultToDate={dateRange.toDate}
+      defaultFromDate={todayString}
+      defaultToDate={todayString}
     />
   );
 }
