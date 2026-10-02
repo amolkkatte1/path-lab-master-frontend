@@ -1155,32 +1155,45 @@ export async function getExistingBillingForPatient({
       return null;
     }
 
-    const findBillingRecord = (value: unknown): Record<string, unknown> | null => {
+    const findBillingRecord = (value: unknown, preferredPatientId?: string): Record<string, unknown> | null => {
       if (!value || typeof value !== "object") {
         return null;
       }
 
       if (Array.isArray(value)) {
-        for (const item of value) {
-          const match = findBillingRecord(item);
-          if (match) return match;
-        }
-        return null;
+        const matches = value
+          .map((item) => findBillingRecord(item, preferredPatientId))
+          .filter((item): item is Record<string, unknown> => Boolean(item));
+        return matches.find((item) => String((item.patientId ?? "")).trim() === String(preferredPatientId ?? "").trim()) ?? matches[0] ?? null;
       }
 
-      if ("billId" in value && value.billId !== undefined && value.billId !== null && String(value.billId).trim() !== "") {
-        return value as Record<string, unknown>;
+      const currentValue = value as Record<string, unknown>;
+      const hasBillId = Boolean(
+        currentValue.billId !== undefined &&
+        currentValue.billId !== null &&
+        String(currentValue.billId).trim() !== "",
+      );
+      const matchesPatient = preferredPatientId !== undefined && preferredPatientId !== null && preferredPatientId !== ""
+        ? String(currentValue.patientId ?? "").trim() === String(preferredPatientId).trim()
+        : false;
+
+      if (hasBillId && (preferredPatientId === undefined || preferredPatientId === null || preferredPatientId === "" || matchesPatient)) {
+        return currentValue;
       }
 
-      for (const nested of Object.values(value)) {
-        const match = findBillingRecord(nested);
+      if (matchesPatient && !hasBillId) {
+        return currentValue;
+      }
+
+      for (const nested of Object.values(currentValue)) {
+        const match = findBillingRecord(nested, preferredPatientId);
         if (match) return match;
       }
 
       return null;
     };
 
-    const data = findBillingRecord(payload);
+    const data = findBillingRecord(payload, patientId);
     if (!data) {
       return null;
     }
