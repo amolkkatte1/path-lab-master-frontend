@@ -140,9 +140,7 @@ export default function SubscriptionPage() {
 
           <div className="qr-content">
             <div className="upi-details">
-              <strong>GENEX HEALTHCARE PVT LTD</strong>
-              <span>PUNE</span>
-              <span>TID: 65070660</span>
+              
             </div>
 
             <div className="qr-image-wrapper">

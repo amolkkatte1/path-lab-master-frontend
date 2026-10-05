@@ -43,6 +43,7 @@ export function DoctorSelector({
   const [newDoctorMobile, setNewDoctorMobile] = useState("");
   const [newDoctorEmail, setNewDoctorEmail] = useState("");
   const [isCreatingDoctor, setIsCreatingDoctor] = useState(false);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [dropdownRect, setDropdownRect] = useState<{ left: number; top: number; width: number; maxHeight: number } | null>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
@@ -115,6 +116,8 @@ export function DoctorSelector({
   }, [doctorList, query]);
 
   async function refreshDoctors() {
+    setIsLoadingDoctors(true);
+
     try {
       const response = await fetch(getDoctorListByLabId(currentLabId), {
         cache: "no-store",
@@ -130,8 +133,17 @@ export function DoctorSelector({
       return nextDoctors;
     } catch {
       return null;
+    } finally {
+      setIsLoadingDoctors(false);
     }
   }
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    if (doctorList.length > 0) return;
+
+    void refreshDoctors();
+  }, [isDropdownOpen, doctorList.length]);
 
   async function handleCreateDoctor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -207,7 +219,12 @@ export function DoctorSelector({
             <FiSearch className="h-4 w-4 text-slate-400" />
             <input
               value={query}
-              onFocus={() => setIsDropdownOpen(true)}
+              onFocus={() => {
+                setIsDropdownOpen(true);
+                if (doctorList.length === 0) {
+                  void refreshDoctors();
+                }
+              }}
               onChange={(event) => {
                 setQuery(event.target.value);
                 setIsDropdownOpen(true);
@@ -225,7 +242,13 @@ export function DoctorSelector({
             </button>
           </div>
 
-          {isDropdownOpen && dropdownRect && filteredDoctors.length > 0 && createPortal(
+          {isDropdownOpen && dropdownRect && isLoadingDoctors && createPortal(
+            <div data-doctor-dropdown style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width, maxHeight: dropdownRect.maxHeight, zIndex: 55 }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+              Loading doctors...
+            </div>, document.body,
+          )}
+
+          {isDropdownOpen && dropdownRect && !isLoadingDoctors && filteredDoctors.length > 0 && createPortal(
             <div data-doctor-dropdown style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width, maxHeight: dropdownRect.maxHeight, overflowY: "auto", zIndex: 55 }} className="rounded-xl border border-slate-200 bg-white shadow-lg">
               {filteredDoctors.slice(0, 8).map((doctor) => (
                 <button
@@ -246,7 +269,7 @@ export function DoctorSelector({
             </div>, document.body,
           )}
 
-          {isDropdownOpen && dropdownRect && filteredDoctors.length === 0 && createPortal(
+          {isDropdownOpen && dropdownRect && !isLoadingDoctors && filteredDoctors.length === 0 && createPortal(
             <div data-doctor-dropdown style={{ position: "fixed", left: dropdownRect.left, top: dropdownRect.top, width: dropdownRect.width, maxHeight: dropdownRect.maxHeight, zIndex: 55 }} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
               No doctors found for this lab.
             </div>, document.body,

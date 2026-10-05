@@ -111,8 +111,8 @@ export function PatientsTable({ patients }: PatientsTableProps) {
           <button type="button" onClick={() => setFilters(initialFilters)} className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/10">Clear filters</button>
         </div>
       </div>
-      <div className="max-w-full overflow-x-auto">
-        <table className="w-full min-w-[1080px] text-left text-sm">
+      <div className="w-full overflow-x-auto">
+        <table className="w-full text-left text-sm">
           <thead className="bg-transparent-950/30 text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
               {([

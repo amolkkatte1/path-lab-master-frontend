@@ -1455,6 +1455,27 @@ export type ReportListItem = {
   }> | null;
 };
 
+export type PatientListFilters = {
+  fromDate?: string;
+  toDate?: string;
+  firstName?: string;
+  lastName?: string;
+  patientId?: string;
+  doctorName?: string;
+  doctorId?: string;
+};
+
+export type Patient = {
+  patientId?: number | string;
+  prefix?: string | null;
+  firstName?: string | null;
+  middleName?: string | null;
+  lastName?: string | null;
+  doctorId?: number | string | null;
+  doctorName?: string | null;
+  labId?: number | string;
+};
+
 export type ReportDoctorOption = {
   doctorId: number | string;
   doctorName?: string;
@@ -1495,6 +1516,45 @@ export async function getReportDoctors() {
     };
   } catch {
     return { ok: false as const, doctors: [] as ReportDoctorOption[] };
+  }
+}
+
+function patientFilterValue(value: string | undefined) {
+  const normalizedValue = value?.trim();
+  return normalizedValue || null;
+}
+
+export async function getPatientList(filters: PatientListFilters = {}) {
+  const currentUser = await requireUserType("Administrator");
+
+  const body = {
+    fromDate: reportDate(filters.fromDate),
+    toDate: reportDate(filters.toDate),
+    labId: currentUser.labId,
+    firstName: patientFilterValue(filters.firstName),
+    lastName: patientFilterValue(filters.lastName),
+    patientId: patientFilterValue(filters.patientId) && /^\d+$/.test(filters.patientId!) ? filters.patientId : null,
+    doctorName: patientFilterValue(filters.doctorName),
+    doctorId: patientFilterValue(filters.doctorId) && /^\d+$/.test(filters.doctorId!) ? filters.doctorId : null,
+  };
+
+  try {
+    const response = await fetch(API_ENDPOINTS.patientListFilter, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      signal: AbortSignal.timeout(10_000),
+      body: stringifyApiPayload(body, ["labId", "patientId", "doctorId"]),
+    });
+
+    if (!response.ok) {
+      return { ok: false as const, patients: [] as Patient[] };
+    }
+
+    const payload = await parseApiResponse<{ data?: Patient[] }>(response);
+    return { ok: true as const, patients: payload.data ?? [] };
+  } catch {
+    return { ok: false as const, patients: [] as Patient[] };
   }
 }
 

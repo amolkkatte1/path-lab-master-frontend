@@ -35,6 +35,7 @@ export const API_ENDPOINTS = {
   billingUpdate: `${API_BASE_URL}/billing/update`,
   ocrExtract: "https://ocr-y7tf.onrender.com/extract",
   reportListFilter: `${API_BASE_URL}/report/list/filter`,
+  patientListFilter: `${API_BASE_URL}/patient/list/filter`,
   doctorList: `${API_BASE_URL}/doctor/list`,
   createDoctor: `${API_BASE_URL}/doctor/create`,
   getDoctor: `${API_BASE_URL}/doctor/get`,
