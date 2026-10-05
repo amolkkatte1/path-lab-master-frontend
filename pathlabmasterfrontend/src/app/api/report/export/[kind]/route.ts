@@ -35,7 +35,7 @@ export async function GET(
       status: upstream.status,
       headers: {
         "Content-Type": contentType,
-        "Content-Disposition": `attachment; filename="report.${kind === "pdf" ? "pdf" : "xls"}"`,
+        "Content-Disposition": `inline; filename="report.${kind === "pdf" ? "pdf" : "xls"}"`,
       },
     });
   } catch {
