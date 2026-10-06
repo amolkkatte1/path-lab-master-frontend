@@ -111,6 +111,248 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.patient-filter-panel {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.72);
+  color: #e2e8f0;
+}
+
+.patient-filter-heading {
+  border-color: rgba(148, 163, 184, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  color: #6ee7b7;
+}
+
+.patient-filter-label,
+.patient-filter-label-text {
+  color: #cbd5e1;
+}
+
+.patient-filter-input {
+  border-color: rgba(148, 163, 184, 0.38);
+  background: rgba(2, 6, 23, 0.68);
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+.patient-filter-input:focus {
+  border-color: #34d399;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.16);
+}
+
+.patient-filter-date-button {
+  color: #94a3b8;
+}
+
+.patient-filter-date-button:hover {
+  color: #6ee7b7;
+}
+
+.patient-filter-actions {
+  border-color: rgba(148, 163, 184, 0.2);
+}
+
+.patient-filter-clear,
+.patient-table-clear {
+  border-color: rgba(148, 163, 184, 0.34);
+  background: rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.patient-filter-clear:hover,
+.patient-table-clear:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.patient-filter-search {
+  border-color: #059669;
+  background: #059669;
+  color: #ffffff;
+}
+
+.patient-filter-search:hover {
+  background: #10b981;
+}
+
+.patient-doctor-filter-menu,
+.patient-doctor-filter-empty {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: #0f172a;
+  color: #cbd5e1;
+}
+
+.patient-doctor-filter-option {
+  color: #e2e8f0;
+}
+
+.patient-doctor-filter-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.patient-doctor-filter-id {
+  color: #94a3b8;
+}
+
+.patient-filter-error {
+  border-color: rgba(251, 113, 133, 0.35);
+  background: rgba(244, 63, 94, 0.12);
+  color: #fecdd3;
+}
+
+.patient-table-shell {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.55);
+  color: #e2e8f0;
+}
+
+.patient-table-header {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.patient-table-title {
+  color: #f8fafc;
+}
+
+.patient-table-count {
+  background: rgba(52, 211, 153, 0.15);
+  color: #a7f3d0;
+}
+
+.patient-table-filter {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #94a3b8;
+}
+
+.patient-table-filter-input {
+  color: #e2e8f0;
+}
+
+.patient-table-filter-input:focus {
+  outline: 1px solid #34d399;
+}
+
+.theme-light .workspace-shell .patient-filter-panel {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #172033;
+}
+
+.theme-light .workspace-shell .patient-filter-heading {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #047857;
+}
+
+.theme-light .workspace-shell .patient-filter-label,
+.theme-light .workspace-shell .patient-filter-label-text {
+  color: #334155;
+}
+
+.theme-light .workspace-shell .patient-filter-input {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  color-scheme: light;
+}
+
+.theme-light .workspace-shell .patient-filter-date-button {
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .patient-filter-date-button:hover {
+  color: #047857;
+}
+
+.theme-light .workspace-shell .patient-filter-actions {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .patient-filter-clear,
+.theme-light .workspace-shell .patient-table-clear {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.theme-light .workspace-shell .patient-filter-clear:hover,
+.theme-light .workspace-shell .patient-table-clear:hover {
+  background: #f1f5f9;
+}
+
+.theme-light .workspace-shell .patient-filter-search {
+  border-color: #059669;
+  background: #059669;
+  color: #ffffff;
+}
+
+.theme-light .workspace-shell .patient-filter-search:hover {
+  background: #047857;
+}
+
+.theme-light .workspace-shell .patient-doctor-filter-menu,
+.theme-light .workspace-shell .patient-doctor-filter-empty {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #475569;
+}
+
+.theme-light .workspace-shell .patient-doctor-filter-option {
+  color: #334155;
+}
+
+.theme-light .workspace-shell .patient-doctor-filter-option:hover {
+  background: #f1f5f9;
+}
+
+.theme-light .workspace-shell .patient-doctor-filter-id {
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .patient-filter-error {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.theme-light .workspace-shell .patient-table-shell {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.theme-light .workspace-shell .patient-table-header {
+  border-color: #e2e8f0;
+}
+
+.theme-light .workspace-shell .patient-table-title {
+  color: #0f172a;
+}
+
+.theme-light .workspace-shell .patient-table-count {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.theme-light .workspace-shell .patient-table-filter {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .patient-table-filter-input {
+  color: #334155;
+}
+
+.theme-light .workspace-shell .patient-table-filter-input::placeholder {
+  color: #94a3b8;
+}
+
+.theme-light .workspace-shell .patient-table-head {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .dashboard-queue-shell {
   border-color: rgba(255, 255, 255, 0.1);
 }

@@ -103,17 +103,17 @@ export function PatientsTable({ patients }: PatientsTableProps) {
   }
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-slate-950/45">
-      <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="font-semibold text-white">All patients</h2>
+    <div className="patient-table-shell min-w-0 overflow-hidden rounded-2xl border">
+      <div className="patient-table-header flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <h2 className="patient-table-title font-semibold">All patients</h2>
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-semibold text-emerald-200">Showing {sortedPatients.length} of {patients.length}</span>
-          <button type="button" onClick={() => setFilters(initialFilters)} className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-200 transition hover:bg-white/10">Clear filters</button>
+          <span className="patient-table-count rounded-full px-3 py-1 text-xs font-semibold">Showing {sortedPatients.length} of {patients.length}</span>
+          <button type="button" onClick={() => setFilters({ ...initialFilters })} className="patient-table-clear rounded-full border px-3 py-1 text-xs font-semibold transition">Clear filters</button>
         </div>
       </div>
       <div className="w-full overflow-x-auto">
         <table className="w-full text-left text-sm">
-          <thead className="bg-transparent-950/30 text-slate-400">
+          <thead className="patient-table-head text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
               {([
                 ["patient", "Patient"],
@@ -128,9 +128,9 @@ export function PatientsTable({ patients }: PatientsTableProps) {
                     {label}
                     {sortIndicator(sortKey, sortDirection, key)}
                   </button>
-                  <label className="mt-2 flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 normal-case tracking-normal">
+                  <label className="patient-table-filter mt-2 flex items-center gap-2 rounded-lg border px-2 py-1.5 normal-case tracking-normal">
                     <FiSearch className="h-3.5 w-3.5 shrink-0" />
-                    <input value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label}`} className="min-w-0 w-full bg-transparent text-xs font-normal text-slate-200 outline-none placeholder:text-slate-500" />
+                    <input value={filters[key]} onChange={(event) => updateFilter(key, event.target.value)} placeholder={`Search ${label.toLowerCase()}`} aria-label={`Search ${label}`} className="patient-table-filter-input min-w-0 w-full bg-transparent text-xs font-normal outline-none placeholder:text-slate-500" />
                   </label>
                 </th>
               ))}

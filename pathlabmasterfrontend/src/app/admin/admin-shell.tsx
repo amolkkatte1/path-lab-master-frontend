@@ -10,7 +10,11 @@ type AdminShellProps = {
   sidebarContent: ReactNode;
 };
 
-export function AdminShell({ children, headerContent, sidebarContent }: Readonly<AdminShellProps>) {
+export function AdminShell({
+  children,
+  headerContent,
+  sidebarContent,
+}: Readonly<AdminShellProps>) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -27,7 +31,9 @@ export function AdminShell({ children, headerContent, sidebarContent }: Readonly
           aria-hidden="true"
           onClick={() => setSidebarOpen(false)}
           className={`fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-sm transition lg:hidden ${
-            sidebarOpen ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+            sidebarOpen
+              ? "pointer-events-auto opacity-100"
+              : "pointer-events-none opacity-0"
           }`}
         />
 
@@ -37,7 +43,9 @@ export function AdminShell({ children, headerContent, sidebarContent }: Readonly
           }`}
         >
           <div className="mb-6 flex items-center justify-between lg:hidden">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-200">Navigation</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-sky-200">
+              Navigation
+            </p>
             <button
               type="button"
               onClick={() => setSidebarOpen(false)}
@@ -64,7 +72,9 @@ export function AdminShell({ children, headerContent, sidebarContent }: Readonly
               <div className="min-w-0 flex-1">{headerContent}</div>
             </div>
           </header>
-          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-6 pt-26 sm:px-6 lg:px-8 lg:pb-5 lg:pt-25">{children}</main>
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto px-4 pb-6 pt-26 sm:px-6 lg:px-8 lg:pb-5 lg:pt-25">
+            {children}
+          </main>
         </div>
       </div>
     </div>

@@ -7,8 +7,8 @@ import { requireUserType } from "@/lib/auth";
 import { AdminShell } from "./admin-shell";
 import { AdminSidebarNav } from "./sidebar-nav";
 import { TopbarClock } from "../super-admin/topbar-clock";
-import { FiFileText, FiUserPlus } from "react-icons/fi";
-import { TbCurrencyRupee } from "react-icons/tb";
+import { FiFileText, FiUserPlus, FiHome } from "react-icons/fi";
+// import { TbCurrencyRupee } from "react-icons/tb";
 
 export default async function AdminLayout(props: LayoutProps<"/admin">) {
   const user = await requireUserType("Administrator");
@@ -69,17 +69,6 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
                 Add Patient
               </span>
             </Link>
-            <button
-              type="button"
-              aria-label="Billing"
-              title="Billing"
-              className="inline-flex min-w-11 flex-col items-center gap-0.5 rounded-lg border border-white/15 px-2 py-1.5 text-slate-100 transition hover:border-emerald-300/50 hover:bg-emerald-400/15"
-            >
-              <TbCurrencyRupee className="h-5 w-5" />
-              <span className="text-[11px] font-medium leading-none">
-                Billing
-              </span>
-            </button>
             <Link
               href="/admin/reports"
               aria-label="Review reports"
@@ -89,6 +78,18 @@ export default async function AdminLayout(props: LayoutProps<"/admin">) {
               <FiFileText className="h-5 w-5" />
               <span className="text-[11px] font-medium leading-none">
                 Reports
+              </span>
+            </Link>
+            <Link
+              href="/admin"
+              type="button"
+              aria-label="Dashboard"
+              title="Dashboard"
+              className="inline-flex min-w-11 flex-col items-center gap-0.5 rounded-lg border border-white/15 px-2 py-1.5 text-slate-100 transition hover:border-emerald-300/50 hover:bg-emerald-400/15"
+            >
+              <FiHome className="h-5 w-5" />
+              <span className="text-[11px] font-medium leading-none">
+                Dashboard
               </span>
             </Link>
             <div className="hidden lg:block">

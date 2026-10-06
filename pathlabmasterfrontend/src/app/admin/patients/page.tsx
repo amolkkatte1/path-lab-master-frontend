@@ -1,13 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FiCalendar, FiChevronDown, FiSearch, FiTrash2 } from "react-icons/fi";
+import { FiCalendar, FiSearch, FiTrash2 } from "react-icons/fi";
 
 import { getPatientList, getReportDoctors, type PatientListFilters } from "@/app/actions";
 import { PatientsTable, type Patient } from "./patients-table";
 
 const today = new Date();
-const formatDateInput = (date: Date) => date.toISOString().slice(0, 10);
+const formatDateInput = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 function formatDateForDisplay(value: string) {
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -20,19 +25,28 @@ function parseDateFromDisplay(value: string) {
   const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!match) return "";
   const [, day, month, year] = match;
-  const normalizedDay = String(day).padStart(2, "0");
-  const normalizedMonth = String(month).padStart(2, "0");
-  return `${year}-${normalizedMonth}-${normalizedDay}`;
+  const normalizedDay = Number(day);
+  const normalizedMonth = Number(month);
+  const normalizedYear = Number(year);
+  const parsed = new Date(Date.UTC(normalizedYear, normalizedMonth - 1, normalizedDay));
+  if (
+    parsed.getUTCFullYear() !== normalizedYear ||
+    parsed.getUTCMonth() !== normalizedMonth - 1 ||
+    parsed.getUTCDate() !== normalizedDay
+  ) return "";
+  return `${year}-${String(normalizedMonth).padStart(2, "0")}-${String(normalizedDay).padStart(2, "0")}`;
 }
 
 function DateInput({
   value,
   onChange,
+  onValidityChange,
   min,
   max,
 }: {
   value: string;
   onChange: (value: string) => void;
+  onValidityChange: (isValid: boolean) => void;
   min?: string;
   max?: string;
 }) {
@@ -47,8 +61,12 @@ function DateInput({
     const picker = inputRef.current;
     if (!picker) return;
     if (typeof picker.showPicker === "function") {
-      picker.showPicker();
-      return;
+      try {
+        picker.showPicker();
+        return;
+      } catch {
+        // Fall through to focus on browsers that reject showPicker().
+      }
     }
     picker.focus();
   }
@@ -62,15 +80,19 @@ function DateInput({
           const nextValue = event.target.value;
           setDisplayValue(nextValue);
           const parsed = parseDateFromDisplay(nextValue);
-          onChange(parsed || "");
+          const isEmpty = nextValue.trim() === "";
+          onValidityChange(isEmpty || Boolean(parsed));
+          if (parsed) onChange(parsed);
+          else if (isEmpty) onChange("");
         }}
-        className="w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2.5 pr-10 text-sm text-slate-700 outline-none transition placeholder:text-slate-400"
+        onClick={openPicker}
+        className="patient-filter-input w-full rounded-lg border px-3 py-2.5 pr-10 text-sm outline-none transition placeholder:text-slate-400"
         placeholder="dd/mm/yyyy"
       />
       <button
         type="button"
         onClick={openPicker}
-        className="absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center text-slate-500 transition hover:text-slate-700"
+        className="patient-filter-date-button absolute right-2 top-1/2 inline-flex -translate-y-1/2 items-center justify-center transition"
         aria-label="Open date picker"
       >
         <FiCalendar className="h-4 w-4" />
@@ -81,8 +103,13 @@ function DateInput({
         value={value}
         min={min}
         max={max}
-        onChange={(event) => onChange(event.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        onChange={(event) => {
+          onValidityChange(true);
+          onChange(event.target.value);
+        }}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
       />
     </div>
   );
@@ -117,6 +144,7 @@ function DoctorFilterSelector({
   const [doctorList, setDoctorList] = useState<DoctorOption[]>([]);
   const [query, setQuery] = useState(value);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
 
   useEffect(() => {
     setQuery(value);
@@ -156,9 +184,15 @@ function DoctorFilterSelector({
   }, [doctorList, query]);
 
   async function refreshDoctors() {
-    const result = await getReportDoctors();
-    if (result.ok) {
-      setDoctorList(result.doctors);
+    setIsLoadingDoctors(true);
+    try {
+      const result = await getReportDoctors();
+      if (result.ok) setDoctorList(result.doctors);
+      else setDoctorList([]);
+    } catch {
+      setDoctorList([]);
+    } finally {
+      setIsLoadingDoctors(false);
     }
   }
 
@@ -178,12 +212,16 @@ function DoctorFilterSelector({
             onChange({ name: event.target.value, doctorId: "" });
           }}
           placeholder="Search doctor"
-          className="w-full rounded-lg border border-slate-300 bg-white/80 py-2.5 pl-9 pr-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400"
+          className="patient-filter-input w-full rounded-lg border py-2.5 pl-9 pr-3 text-sm outline-none transition placeholder:text-slate-400"
         />
       </div>
 
+      {isDropdownOpen && isLoadingDoctors && filteredDoctors.length === 0 && (
+        <div className="patient-doctor-filter-empty absolute z-20 mt-2 w-full rounded-xl border px-3 py-2 text-sm shadow-lg">Loading doctors…</div>
+      )}
+
       {isDropdownOpen && filteredDoctors.length > 0 && (
-        <div className="absolute z-20 mt-2 max-h-64 w-full overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-lg">
+        <div className="patient-doctor-filter-menu absolute z-20 mt-2 max-h-64 w-full overflow-y-auto overscroll-contain rounded-xl border shadow-lg">
           {filteredDoctors.map((doctor) => (
             <button
               key={String(doctor.doctorId)}
@@ -194,17 +232,17 @@ function DoctorFilterSelector({
                 onChange({ name: nextValue, doctorId: String(doctor.doctorId) });
                 setIsDropdownOpen(false);
               }}
-              className="flex w-full items-center justify-between px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-slate-100"
+              className="patient-doctor-filter-option flex w-full items-center justify-between px-3 py-2 text-left text-sm transition"
             >
               <span>{doctor.doctorName ?? "Unnamed doctor"}</span>
-              <span className="text-xs text-slate-500">ID: {doctor.doctorId}</span>
+              <span className="patient-doctor-filter-id text-xs">ID: {doctor.doctorId}</span>
             </button>
           ))}
         </div>
       )}
 
-      {isDropdownOpen && filteredDoctors.length === 0 && (
-        <div className="absolute z-20 mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-lg">
+      {isDropdownOpen && !isLoadingDoctors && filteredDoctors.length === 0 && (
+        <div className="patient-doctor-filter-empty absolute z-20 mt-2 w-full rounded-xl border px-3 py-2 text-sm shadow-lg">
           No doctors found for this lab.
         </div>
       )}
@@ -217,20 +255,28 @@ export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [invalidDateFields, setInvalidDateFields] = useState({ fromDate: false, toDate: false });
+  const requestId = useRef(0);
 
   async function loadPatients(nextFilters: PatientListFilters = filters) {
+    const currentRequestId = ++requestId.current;
     setIsLoading(true);
     setError(null);
-    const result = await getPatientList(nextFilters);
-    if (!result.ok) {
-      setPatients([]);
-      setError("Unable to connect to the patient service. Please try again.");
-      setIsLoading(false);
-      return;
+    try {
+      const result = await getPatientList(nextFilters);
+      if (currentRequestId !== requestId.current) return;
+      if (!result.ok) {
+        setError("Unable to connect to the patient service. Please try again.");
+        return;
+      }
+      setPatients(result.patients as Patient[]);
+    } catch {
+      if (currentRequestId === requestId.current) {
+        setError("Unable to connect to the patient service. Please try again.");
+      }
+    } finally {
+      if (currentRequestId === requestId.current) setIsLoading(false);
     }
-
-    setPatients(result.patients as Patient[]);
-    setIsLoading(false);
   }
 
   useEffect(() => {
@@ -240,84 +286,114 @@ export default function PatientsPage() {
   function clearFilters() {
     const nextFilters = { ...initialFilters };
     setFilters(nextFilters);
+    setInvalidDateFields({ fromDate: false, toDate: false });
     void loadPatients(nextFilters);
   }
 
   function handleSearch() {
+    if (invalidDateFields.fromDate || invalidDateFields.toDate) return;
     void loadPatients(filters);
+  }
+
+  function updateDateValidity(field: "fromDate" | "toDate", isValid: boolean) {
+    setInvalidDateFields((current) => ({ ...current, [field]: !isValid }));
+  }
+
+  function updateFromDate(value: string) {
+    setFilters((current) => ({
+      ...current,
+      fromDate: value,
+      toDate: value && current.toDate && value > current.toDate ? value : current.toDate,
+    }));
+  }
+
+  function updateToDate(value: string) {
+    setFilters((current) => ({
+      ...current,
+      toDate: value,
+      fromDate: value && current.fromDate && value < current.fromDate ? value : current.fromDate,
+    }));
   }
 
   return (
     <section className="mx-auto min-w-0 w-full space-y-3">
-      <div className="overflow-hidden rounded-[20px] border border-slate-300/80 bg-[#dfeef0] shadow-sm">
-        <div className="border-b border-slate-300/80 px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-emerald-700 sm:text-xs">
+      <div className="patient-filter-panel overflow-visible rounded-[20px] border shadow-sm">
+        <div className="patient-filter-heading rounded-t-[20px] border-b px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.22em] sm:text-xs">
           PATIENT DIRECTORY
         </div>
 
-        <div className="space-y-3 p-2.5 sm:p-3">
+        <form
+          className="space-y-3 p-2.5 sm:p-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            handleSearch();
+          }}
+        >
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 From Date
               </span>
               <DateInput
                 value={filters.fromDate ?? formatDateInput(today)}
                 max={filters.toDate || undefined}
-                onChange={(value) => setFilters((current) => ({ ...current, fromDate: value }))}
+                onChange={updateFromDate}
+                onValidityChange={(isValid) => updateDateValidity("fromDate", isValid)}
               />
             </label>
 
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 To Date
               </span>
               <DateInput
                 value={filters.toDate ?? formatDateInput(today)}
                 min={filters.fromDate || undefined}
-                onChange={(value) => setFilters((current) => ({ ...current, toDate: value }))}
+                onChange={updateToDate}
+                onValidityChange={(isValid) => updateDateValidity("toDate", isValid)}
               />
             </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 First Name
               </span>
               <input
                 value={filters.firstName ?? ""}
                 onChange={(event) => setFilters((current) => ({ ...current, firstName: event.target.value }))}
-                className="w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400"
+                className="patient-filter-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400"
               />
             </label>
 
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 Last Name
               </span>
               <input
                 value={filters.lastName ?? ""}
                 onChange={(event) => setFilters((current) => ({ ...current, lastName: event.target.value }))}
-                className="w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400"
+                className="patient-filter-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400"
               />
             </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 Reg. No.
               </span>
               <input
                 value={filters.patientId ?? ""}
-                onChange={(event) => setFilters((current) => ({ ...current, patientId: event.target.value }))}
+                onChange={(event) => setFilters((current) => ({ ...current, patientId: event.target.value.replace(/\D/g, "") }))}
                 inputMode="numeric"
-                className="w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2.5 text-sm text-slate-700 outline-none transition placeholder:text-slate-400"
+                className="patient-filter-input w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition placeholder:text-slate-400"
               />
             </label>
 
-            <label className="block text-sm font-medium text-slate-700">
-              <span className="mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-700">
+            <label className="patient-filter-label block text-sm font-medium">
+              <span className="patient-filter-label-text mb-1.5 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em]">
                 Ref. Doctor
               </span>
               <DoctorFilterSelector
@@ -333,46 +409,41 @@ export default function PatientsPage() {
             </label>
           </div>
 
-          <div className="flex items-center justify-between gap-3 border-t border-slate-300/80 pt-3">
-            <button
-              type="button"
-              className="inline-flex items-center gap-2 text-sm font-medium text-sky-700 underline-offset-4 hover:underline"
-            >
-              <span>Show</span>
-              <FiChevronDown className="h-4 w-4" />
-            </button>
-
+          <div className="patient-filter-actions flex items-center justify-end gap-3 border-t pt-3">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={clearFilters}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white/80 px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-white"
+                className="patient-filter-clear inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium shadow-sm transition"
               >
                 <FiTrash2 className="h-4 w-4" />
                 Clear
               </button>
 
               <button
-                type="button"
-                onClick={handleSearch}
-                disabled={isLoading}
-                className="inline-flex items-center gap-2 rounded-lg border border-emerald-500 bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                type="submit"
+                disabled={isLoading || invalidDateFields.fromDate || invalidDateFields.toDate}
+                className="patient-filter-search inline-flex items-center gap-2 rounded-lg border px-4 py-2.5 text-sm font-semibold shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FiSearch className="h-4 w-4" />
                 {isLoading ? "Searching..." : "Search"}
               </button>
             </div>
           </div>
-        </div>
+        </form>
       </div>
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-5 text-sm text-rose-100">
+      {(invalidDateFields.fromDate || invalidDateFields.toDate) && (
+        <p className="patient-filter-error rounded-xl border px-4 py-3 text-sm" role="alert">
+          Enter valid dates in dd/mm/yyyy format.
+        </p>
+      )}
+      {error && (
+        <div className="patient-filter-error rounded-2xl border p-5 text-sm" role="alert">
           {error}
         </div>
-      ) : (
-        <PatientsTable patients={patients} />
       )}
+      <PatientsTable patients={patients} />
     </section>
   );
 }
