@@ -312,7 +312,6 @@ export function PendingTestsEditor({
   const [apiError, setApiError] = useState<string | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
-  const [ocrLogs, setOcrLogs] = useState<string[]>([]);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
   const [includeHeader, setIncludeHeader] = useState(false);
@@ -432,19 +431,6 @@ export function PendingTestsEditor({
   }
 
   function writeOcrLog(level: "info" | "warn" | "error", message: string, details?: unknown) {
-    let detailText = "";
-    if (details !== undefined) {
-      if (typeof details === "string") detailText = details;
-      else {
-        try {
-          detailText = JSON.stringify(details);
-        } catch {
-          detailText = String(details);
-        }
-      }
-    }
-    const line = `${new Date().toLocaleTimeString()} ${level.toUpperCase()} ${message}${detailText ? ` — ${detailText}` : ""}`;
-    setOcrLogs((current) => [...current.slice(-39), line]);
     if (level === "error") console.error(`[OCR] ${message}`, details ?? "");
     else if (level === "warn") console.warn(`[OCR] ${message}`, details ?? "");
     else console.info(`[OCR] ${message}`, details ?? "");
@@ -454,7 +440,6 @@ export function PendingTestsEditor({
     if (!file || !activeTest) return;
     setOcrError(null);
     setOcrMessage(null);
-    setOcrLogs([]);
     const testName = activeTest.code.trim();
     console.groupCollapsed(`[OCR] ${testName}`);
     writeOcrLog("info", "Image selected", {
@@ -724,11 +709,6 @@ export function PendingTestsEditor({
                 <span className="mb-5 h-12 w-12 animate-spin rounded-full border-4 border-emerald-300/20 border-t-emerald-400" aria-hidden="true" />
                 <p className="pending-test-ocr-loading-title text-base font-semibold">Reading image values</p>
                 <p className="pending-test-ocr-loading-description mt-2 text-sm">Please wait while the test parameters are being filled.</p>
-                {ocrLogs.length > 0 && (
-                  <pre className="pending-test-ocr-loading-log mt-4 max-h-24 w-full overflow-y-auto whitespace-pre-wrap break-words text-left text-[11px]" aria-live="polite">
-                    {ocrLogs.slice(-4).join("\n")}
-                  </pre>
-                )}
               </div>
             </div>
           )}
@@ -807,14 +787,6 @@ export function PendingTestsEditor({
                   </div>
                   {ocrMessage && <p className="mt-3 text-sm text-emerald-300">{ocrMessage}</p>}
                   {ocrError && <p role="alert" className="mt-3 text-sm text-rose-300">{ocrError}</p>}
-                  {ocrLogs.length > 0 && (
-                    <div className="pending-test-ocr-log-panel mt-4 rounded-lg border p-3">
-                      <p className="pending-test-ocr-log-title mb-2 text-xs font-semibold uppercase tracking-wide">OCR diagnostics</p>
-                      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed" aria-live="polite">
-                        {ocrLogs.join("\n")}
-                      </pre>
-                    </div>
-                  )}
                 </section>
               )}
 
