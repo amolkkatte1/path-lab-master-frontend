@@ -142,10 +142,13 @@ function normalizeOcrKey(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
-const OCR_PROXY_SAFE_IMAGE_BYTES = 3_500_000;
+const OCR_PROXY_SAFE_IMAGE_BYTES = 4_000_000;
 
-async function compressAndroidImage(file: File): Promise<File> {
-  if (file.size <= OCR_PROXY_SAFE_IMAGE_BYTES) return file;
+async function compressAndroidImage(file: File): Promise<{
+  file: File;
+  compression?: { width: number; height: number; quality: number };
+}> {
+  if (file.size <= OCR_PROXY_SAFE_IMAGE_BYTES) return { file };
 
   const objectUrl = URL.createObjectURL(file);
   try {
@@ -159,8 +162,8 @@ async function compressAndroidImage(file: File): Promise<File> {
       throw new Error("Could not prepare the Android photo for upload.");
     }
 
-    let bestBlob: Blob | null = null;
-    for (const [maxDimension, quality] of [[2800, 0.9], [2400, 0.84], [2000, 0.78]] as const) {
+    let bestCandidate: { blob: Blob; width: number; height: number; quality: number } | null = null;
+    for (const [maxDimension, quality] of [[4096, 0.94], [3800, 0.91], [3400, 0.88]] as const) {
       const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
       canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
       canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
@@ -169,19 +172,28 @@ async function compressAndroidImage(file: File): Promise<File> {
 
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
       if (!blob) continue;
-      if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
+      if (!bestCandidate || blob.size < bestCandidate.blob.size) {
+        bestCandidate = { blob, width: canvas.width, height: canvas.height, quality };
+      }
       if (blob.size <= OCR_PROXY_SAFE_IMAGE_BYTES) break;
     }
 
-    if (!bestBlob || bestBlob.size >= file.size || bestBlob.size > OCR_PROXY_SAFE_IMAGE_BYTES) {
-      throw new Error("Could not reduce this Android photo enough for the upload. Try taking a closer photo.");
+    if (!bestCandidate || bestCandidate.blob.size >= file.size || bestCandidate.blob.size > OCR_PROXY_SAFE_IMAGE_BYTES) {
+      throw new Error("Could not fit this Android photo under the upload limit while preserving image detail. Try taking a closer photo.");
     }
 
     const baseName = file.name.replace(/\.[^.]+$/, "") || "patient-image";
-    return new File([bestBlob], `${baseName}.jpg`, {
-      type: "image/jpeg",
-      lastModified: file.lastModified,
-    });
+    return {
+      file: new File([bestCandidate.blob], `${baseName}.jpg`, {
+        type: "image/jpeg",
+        lastModified: file.lastModified,
+      }),
+      compression: {
+        width: bestCandidate.width,
+        height: bestCandidate.height,
+        quality: bestCandidate.quality,
+      },
+    };
   } finally {
     URL.revokeObjectURL(objectUrl);
   }
@@ -469,13 +481,15 @@ export function PendingTestsEditor({
     setIsOcrProcessing(true);
     try {
       const isAndroid = /Android/i.test(navigator.userAgent);
-      const uploadImage = isAndroid ? await compressAndroidImage(file) : file;
+      const preparedImage = isAndroid ? await compressAndroidImage(file) : { file };
+      const uploadImage = preparedImage.file;
       writeOcrLog("info", isAndroid ? "Android upload image prepared" : "Original image selected for upload", {
         name: uploadImage.name,
         type: uploadImage.type,
         originalSizeBytes: file.size,
         uploadSizeBytes: uploadImage.size,
         compressed: uploadImage !== file,
+        compression: preparedImage.compression ?? "not needed",
       });
       const formData = new FormData();
       formData.append("image", uploadImage);
