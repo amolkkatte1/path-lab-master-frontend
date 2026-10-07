@@ -403,6 +403,7 @@ export function PendingTestsEditor({
     setIsOcrProcessing(true);
     try {
       const formData = new FormData();
+      // Send the camera/gallery File unchanged so OCR sees the original image.
       formData.append("image", file);
       formData.append("keys", JSON.stringify(keysForTest));
       formData.append("columnCount", String(ocrColumnCount));
@@ -419,9 +420,26 @@ export function PendingTestsEditor({
         body: formData,
       });
       console.info("OCR HTTP response", { status: response.status, ok: response.ok });
-      const payload: unknown = await response.json();
+      const responseText = await response.text();
+      let payload: unknown;
+      try {
+        payload = JSON.parse(responseText) as unknown;
+      } catch {
+        console.error("OCR response was not valid JSON", responseText.slice(0, 500));
+        const isOversized = response.status === 413 || /request entity too large|payload too large/i.test(responseText);
+        if (isOversized) {
+          throw new Error("The OCR service rejected the original image because it exceeds the upload limit. The service upload limit needs to be increased.");
+        }
+        if (!response.ok) {
+          throw new Error(responseText.trim().slice(0, 200) || `Image extraction failed (${response.status}).`);
+        }
+        throw new Error("The OCR service returned an unreadable response. Please try again.");
+      }
       console.info("OCR response body", payload);
       if (!response.ok) {
+        if (response.status === 413) {
+          throw new Error("The OCR service rejected the original image because it exceeds the upload limit. The service upload limit needs to be increased.");
+        }
         const responseMessage = payload && typeof payload === "object" && "message" in payload
           ? String((payload as { message?: unknown }).message ?? "")
           : "";
