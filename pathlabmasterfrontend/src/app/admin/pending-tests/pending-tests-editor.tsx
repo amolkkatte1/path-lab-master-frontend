@@ -142,6 +142,51 @@ function normalizeOcrKey(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+const OCR_PROXY_SAFE_IMAGE_BYTES = 3_500_000;
+
+async function compressAndroidImage(file: File): Promise<File> {
+  if (file.size <= OCR_PROXY_SAFE_IMAGE_BYTES) return file;
+
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = objectUrl;
+    await image.decode();
+
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+    if (!context || !image.naturalWidth || !image.naturalHeight) {
+      throw new Error("Could not prepare the Android photo for upload.");
+    }
+
+    let bestBlob: Blob | null = null;
+    for (const [maxDimension, quality] of [[2800, 0.9], [2400, 0.84], [2000, 0.78]] as const) {
+      const scale = Math.min(1, maxDimension / Math.max(image.naturalWidth, image.naturalHeight));
+      canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (!blob) continue;
+      if (!bestBlob || blob.size < bestBlob.size) bestBlob = blob;
+      if (blob.size <= OCR_PROXY_SAFE_IMAGE_BYTES) break;
+    }
+
+    if (!bestBlob || bestBlob.size >= file.size || bestBlob.size > OCR_PROXY_SAFE_IMAGE_BYTES) {
+      throw new Error("Could not reduce this Android photo enough for the upload. Try taking a closer photo.");
+    }
+
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "patient-image";
+    return new File([bestBlob], `${baseName}.jpg`, {
+      type: "image/jpeg",
+      lastModified: file.lastModified,
+    });
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
 function extractOcrValues(payload: unknown): Record<string, string> {
   const values: Record<string, string> = {};
   const ignoredKeys = new Set(["success", "message", "status", "error", "filename"]);
@@ -423,9 +468,17 @@ export function PendingTestsEditor({
 
     setIsOcrProcessing(true);
     try {
+      const isAndroid = /Android/i.test(navigator.userAgent);
+      const uploadImage = isAndroid ? await compressAndroidImage(file) : file;
+      writeOcrLog("info", isAndroid ? "Android upload image prepared" : "Original image selected for upload", {
+        name: uploadImage.name,
+        type: uploadImage.type,
+        originalSizeBytes: file.size,
+        uploadSizeBytes: uploadImage.size,
+        compressed: uploadImage !== file,
+      });
       const formData = new FormData();
-      // Send the camera/gallery File unchanged so OCR sees the original image.
-      formData.append("image", file);
+      formData.append("image", uploadImage);
       formData.append("keys", JSON.stringify(keysForTest));
       formData.append("columnCount", String(ocrColumnCount));
 
@@ -433,6 +486,8 @@ export function PendingTestsEditor({
         method: "POST",
         endpoint: API_ENDPOINTS.ocrExtract,
         fields: ["image", "keys", "columnCount"],
+        imageSizeBytes: uploadImage.size,
+        compressed: uploadImage !== file,
         keys: keysForTest,
         columnCount: String(ocrColumnCount),
       });
