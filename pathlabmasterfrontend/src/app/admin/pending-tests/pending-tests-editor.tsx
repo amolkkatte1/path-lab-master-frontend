@@ -255,6 +255,7 @@ export function PendingTestsEditor({
   const [apiError, setApiError] = useState<string | null>(null);
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+  const [ocrLogs, setOcrLogs] = useState<string[]>([]);
   const [isOcrProcessing, setIsOcrProcessing] = useState(false);
   const [showPrintOptions, setShowPrintOptions] = useState(false);
   const [includeHeader, setIncludeHeader] = useState(false);
@@ -373,13 +374,33 @@ export function PendingTestsEditor({
     }));
   }
 
+  function writeOcrLog(level: "info" | "warn" | "error", message: string, details?: unknown) {
+    let detailText = "";
+    if (details !== undefined) {
+      if (typeof details === "string") detailText = details;
+      else {
+        try {
+          detailText = JSON.stringify(details);
+        } catch {
+          detailText = String(details);
+        }
+      }
+    }
+    const line = `${new Date().toLocaleTimeString()} ${level.toUpperCase()} ${message}${detailText ? ` — ${detailText}` : ""}`;
+    setOcrLogs((current) => [...current.slice(-39), line]);
+    if (level === "error") console.error(`[OCR] ${message}`, details ?? "");
+    else if (level === "warn") console.warn(`[OCR] ${message}`, details ?? "");
+    else console.info(`[OCR] ${message}`, details ?? "");
+  }
+
   async function handleOcrImage(file: File | undefined) {
     if (!file || !activeTest) return;
     setOcrError(null);
     setOcrMessage(null);
+    setOcrLogs([]);
     const testName = activeTest.code.trim();
     console.groupCollapsed(`[OCR] ${testName}`);
-    console.info("Image selected", {
+    writeOcrLog("info", "Image selected", {
       name: file.name,
       type: file.type,
       sizeBytes: file.size,
@@ -391,10 +412,10 @@ export function PendingTestsEditor({
     const mappingForTest = ocrTestKeyMapping[testName]
       ?? Object.entries(ocrTestKeyMapping).find(([configuredTestName]) => normalizeOcrKey(configuredTestName) === normalizedTestName)?.[1]
       ?? {};
-    console.info("OCR configuration", { keys: keysForTest, columnCount: ocrColumnCount, testKeyMapping: mappingForTest });
+    writeOcrLog("info", "OCR configuration", { keys: keysForTest, columnCount: ocrColumnCount, testKeyMapping: mappingForTest });
     if (keysForTest.length === 0) {
       const message = `OCR keys are not configured for ${testName}.`;
-      console.error("OCR stopped", message);
+      writeOcrLog("error", "OCR stopped", message);
       setOcrError(message);
       console.groupEnd();
       return;
@@ -408,7 +429,7 @@ export function PendingTestsEditor({
       formData.append("keys", JSON.stringify(keysForTest));
       formData.append("columnCount", String(ocrColumnCount));
 
-      console.info("Sending OCR request", {
+      writeOcrLog("info", "Sending OCR request", {
         method: "POST",
         endpoint: API_ENDPOINTS.ocrExtract,
         fields: ["image", "keys", "columnCount"],
@@ -419,26 +440,35 @@ export function PendingTestsEditor({
         method: "POST",
         body: formData,
       });
-      console.info("OCR HTTP response", { status: response.status, ok: response.ok });
+      writeOcrLog("info", "OCR HTTP response", {
+        status: response.status,
+        ok: response.ok,
+        url: response.url,
+        redirected: response.redirected,
+        contentType: response.headers.get("content-type"),
+        contentLength: response.headers.get("content-length"),
+        server: response.headers.get("server"),
+        via: response.headers.get("via"),
+      });
       const responseText = await response.text();
       let payload: unknown;
       try {
         payload = JSON.parse(responseText) as unknown;
       } catch {
-        console.error("OCR response was not valid JSON", responseText.slice(0, 500));
+        writeOcrLog("error", "OCR response was not valid JSON", responseText.slice(0, 500));
         const isOversized = response.status === 413 || /request entity too large|payload too large/i.test(responseText);
         if (isOversized) {
-          throw new Error("The OCR service rejected the original image because it exceeds the upload limit. The service upload limit needs to be increased.");
+          throw new Error("The OCR upload was rejected as too large before processing. Check the receiving server, proxy, and gateway request limits.");
         }
         if (!response.ok) {
           throw new Error(responseText.trim().slice(0, 200) || `Image extraction failed (${response.status}).`);
         }
         throw new Error("The OCR service returned an unreadable response. Please try again.");
       }
-      console.info("OCR response body", payload);
+      writeOcrLog("info", "OCR response body", payload);
       if (!response.ok) {
         if (response.status === 413) {
-          throw new Error("The OCR service rejected the original image because it exceeds the upload limit. The service upload limit needs to be increased.");
+          throw new Error("The OCR upload was rejected as too large before processing. Check the receiving server, proxy, and gateway request limits.");
         }
         const responseMessage = payload && typeof payload === "object" && "message" in payload
           ? String((payload as { message?: unknown }).message ?? "")
@@ -481,7 +511,7 @@ export function PendingTestsEditor({
       }
 
       if (matchedCount === 0) {
-        console.warn("OCR returned values, but none matched the active test parameters", {
+        writeOcrLog("warn", "OCR returned values, but none matched the active test parameters", {
           testKeyMapping: mappingForTest,
           parameterNames: activeTest.parameters.map((parameter) => parameter.parameterName),
           extractedKeys: Object.keys(extractedValues),
@@ -489,7 +519,7 @@ export function PendingTestsEditor({
         throw new Error("No image values matched this test's parameters.");
       }
 
-      console.info("OCR values matched to parameters", {
+      writeOcrLog("info", "OCR values matched to parameters", {
         matchedCount,
         values: Object.fromEntries(
           activeTest.parameters
@@ -502,9 +532,11 @@ export function PendingTestsEditor({
       setOorMap((previous) => ({ ...previous, ...nextOorValues }));
       recalculateFormulas(-1, "", nextFormulaOverrides, nextParameterOverrides);
       setOcrMessage(`Filled ${matchedCount} parameter${matchedCount === 1 ? "" : "s"} from the image.`);
+      writeOcrLog("info", "OCR autofill completed", { matchedCount });
     } catch (error) {
-      setOcrError(error instanceof Error ? error.message : "Unable to extract values from this image.");
-      console.error("OCR request failed", error);
+      const message = error instanceof Error ? error.message : "Unable to extract values from this image.";
+      setOcrError(message);
+      writeOcrLog("error", "OCR request failed", message);
     } finally {
       setIsOcrProcessing(false);
       console.groupEnd();
@@ -623,6 +655,11 @@ export function PendingTestsEditor({
                 <span className="mb-5 h-12 w-12 animate-spin rounded-full border-4 border-emerald-300/20 border-t-emerald-400" aria-hidden="true" />
                 <p className="pending-test-ocr-loading-title text-base font-semibold">Reading image values</p>
                 <p className="pending-test-ocr-loading-description mt-2 text-sm">Please wait while the test parameters are being filled.</p>
+                {ocrLogs.length > 0 && (
+                  <pre className="pending-test-ocr-loading-log mt-4 max-h-24 w-full overflow-y-auto whitespace-pre-wrap break-words text-left text-[11px]" aria-live="polite">
+                    {ocrLogs.slice(-4).join("\n")}
+                  </pre>
+                )}
               </div>
             </div>
           )}
@@ -701,6 +738,14 @@ export function PendingTestsEditor({
                   </div>
                   {ocrMessage && <p className="mt-3 text-sm text-emerald-300">{ocrMessage}</p>}
                   {ocrError && <p role="alert" className="mt-3 text-sm text-rose-300">{ocrError}</p>}
+                  {ocrLogs.length > 0 && (
+                    <div className="pending-test-ocr-log-panel mt-4 rounded-lg border p-3">
+                      <p className="pending-test-ocr-log-title mb-2 text-xs font-semibold uppercase tracking-wide">OCR diagnostics</p>
+                      <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed" aria-live="polite">
+                        {ocrLogs.join("\n")}
+                      </pre>
+                    </div>
+                  )}
                 </section>
               )}
 

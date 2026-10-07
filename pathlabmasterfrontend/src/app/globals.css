@@ -429,6 +429,17 @@ body {
   color: #cbd5e1;
 }
 
+.pending-test-ocr-loading-log,
+.pending-test-ocr-log-panel {
+  border-color: rgba(148, 163, 184, 0.24);
+  background: rgba(15, 23, 42, 0.82);
+  color: #cbd5e1;
+}
+
+.pending-test-ocr-log-title {
+  color: #6ee7b7;
+}
+
 .theme-dark .workspace-shell .pending-test-ocr-loading-card {
   background-color: #000000;
   color: #f8fafc;
@@ -733,6 +744,17 @@ body {
 
 .theme-light .workspace-shell .pending-test-ocr-loading-description {
   color: #475569;
+}
+
+.theme-light .workspace-shell .pending-test-ocr-loading-log,
+.theme-light .workspace-shell .pending-test-ocr-log-panel {
+  border-color: #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.theme-light .workspace-shell .pending-test-ocr-log-title {
+  color: #047857;
 }
 
 .theme-light .workspace-shell .pending-test-dialog-header {
