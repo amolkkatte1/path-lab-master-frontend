@@ -601,6 +601,7 @@ export function PendingTestsEditor({
     if (!activeTest) return;
     setSubmitting(action);
     setApiError(null);
+    let printWindow: Window | null = null;
 
     const updatedParameters = collectParameters();
 
@@ -621,6 +622,16 @@ export function PendingTestsEditor({
     };
 
     try {
+      // Open synchronously from the button gesture so iOS Safari allows the
+      // new tab. Navigate it to the PDF only after the report is saved.
+      if (action === "approve_print") {
+        printWindow = window.open("about:blank", "_blank");
+        if (printWindow) {
+          printWindow.document.title = "Preparing report";
+          printWindow.document.body.textContent = "Saving report and preparing PDF…";
+        }
+      }
+
       const now = new Date()
         .toISOString()
         .replace("T", " ")
@@ -640,6 +651,7 @@ export function PendingTestsEditor({
       });
 
       if (!result.ok) {
+        printWindow?.close();
         setApiError(result.error);
         return;
       }
@@ -648,12 +660,19 @@ export function PendingTestsEditor({
         // Extract test ID from the key (e.g. "HAEMOGRAM ON CELL COUNTER_20260901184545955" → "20260901184545955")
         const testId = activeTest.key.replace(/^.*_(\d+)$/, "$1");
         const url = getGenerateReportPdfUrl(reportData.patientId, [testId], includeHeader);
-        window.open(url, "_blank");
+        if (printWindow && !printWindow.closed) {
+          printWindow.location.href = url;
+        } else {
+          // Safari can block a new tab in some settings; still open the PDF.
+          window.location.assign(url);
+          return;
+        }
       }
 
       setActiveTest(null);
       router.refresh();
     } catch {
+      printWindow?.close();
       setApiError("Network error. Please check your connection and try again.");
     } finally {
       setSubmitting(null);
