@@ -11,7 +11,7 @@ type SortKey =
   | "labId"
   | "lab"
   | "owner"
-  | "email"
+  | "patientCountAlloted"
   | "contact"
   | "city"
   | "state";
@@ -26,7 +26,7 @@ type FilterState = {
   labId: string;
   lab: string;
   owner: string;
-  email: string;
+  patientCountAlloted: string;
   contact: string;
   city: string;
   state: string;
@@ -36,7 +36,7 @@ const initialFilters: FilterState = {
   labId: "",
   lab: "",
   owner: "",
-  email: "",
+  patientCountAlloted: "",
   contact: "",
   city: "",
   state: "",
@@ -58,8 +58,8 @@ function getOwnerCellValue(lab: ApiLab) {
   return getFullName(lab);
 }
 
-function getEmailCellValue(lab: ApiLab) {
-  return lab.mailId ?? "";
+function getPatientCountAllottedCellValue(lab: ApiLab) {
+  return String(lab.patientCountAlloted ?? lab.patientCountAllocated ?? "");
 }
 
 function getContactCellValue(lab: ApiLab) {
@@ -111,7 +111,10 @@ export function LabsTable({ labs }: LabsTableProps) {
       includesFilter(getLabIdCellValue(lab), deferredFilters.labId) &&
       includesFilter(getLabCellValue(lab), deferredFilters.lab) &&
       includesFilter(getOwnerCellValue(lab), deferredFilters.owner) &&
-      includesFilter(getEmailCellValue(lab), deferredFilters.email) &&
+      includesFilter(
+        getPatientCountAllottedCellValue(lab),
+        deferredFilters.patientCountAlloted,
+      ) &&
       includesFilter(getContactCellValue(lab), deferredFilters.contact) &&
       includesFilter(getCityCellValue(lab), deferredFilters.city) &&
       includesFilter(getStateCellValue(lab), deferredFilters.state)
@@ -126,8 +129,8 @@ export function LabsTable({ labs }: LabsTableProps) {
           ? getLabCellValue(left)
           : sortKey === "owner"
             ? getOwnerCellValue(left)
-            : sortKey === "email"
-              ? getEmailCellValue(left)
+            : sortKey === "patientCountAlloted"
+              ? getPatientCountAllottedCellValue(left)
               : sortKey === "contact"
                 ? getContactCellValue(left)
                 : sortKey === "city"
@@ -141,8 +144,8 @@ export function LabsTable({ labs }: LabsTableProps) {
           ? getLabCellValue(right)
           : sortKey === "owner"
             ? getOwnerCellValue(right)
-            : sortKey === "email"
-              ? getEmailCellValue(right)
+            : sortKey === "patientCountAlloted"
+              ? getPatientCountAllottedCellValue(right)
               : sortKey === "contact"
                 ? getContactCellValue(right)
                 : sortKey === "city"
@@ -212,9 +215,9 @@ export function LabsTable({ labs }: LabsTableProps) {
                 </button>
               </th>
               <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("email")} className="flex items-center gap-2 text-left transition">
-                  Email
-                  {renderSortIndicator(sortKey, sortDirection, "email")}
+                <button type="button" onClick={() => toggleSort("patientCountAlloted")} className="flex items-center gap-2 text-left transition">
+                  Patient Count Allotted
+                  {renderSortIndicator(sortKey, sortDirection, "patientCountAlloted")}
                 </button>
               </th>
               <th className="px-5 py-4 font-semibold">
@@ -280,10 +283,10 @@ export function LabsTable({ labs }: LabsTableProps) {
                 <label className="relative block">
                   <FiSearch className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500" />
                   <input
-                    value={filters.email}
-                    onChange={(event) => updateFilter("email", event.target.value)}
+                    value={filters.patientCountAlloted}
+                    onChange={(event) => updateFilter("patientCountAlloted", event.target.value)}
                     type="text"
-                    placeholder="Search email"
+                    placeholder="Search count"
                     className="w-full rounded-xl border border-white/10 bg-slate-950/45 py-2 pl-9 pr-3 text-xs text-white outline-none placeholder:text-slate-500 focus:border-sky-400/60"
                   />
                 </label>
@@ -351,7 +354,9 @@ export function LabsTable({ labs }: LabsTableProps) {
                     <div className="mt-1 text-xs text-slate-400">{getDistrictCellValue(lab)}</div>
                   </td>
                   <td className="px-5 py-4 align-top">{getFullName(lab)}</td>
-                  <td className="px-5 py-4 align-top text-sky-200">{lab.mailId ?? "—"}</td>
+                  <td className="px-5 py-4 align-top">
+                    {getPatientCountAllottedCellValue(lab) || "—"}
+                  </td>
                   <td className="px-5 py-4 align-top">{getContactCellValue(lab) || "—"}</td>
                   <td className="px-5 py-4 align-top">{lab.city ?? "—"}</td>
                   <td className="px-5 py-4 align-top">{lab.state ?? "—"}</td>
