@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   tests: `${API_BASE_URL}/test/list`,
   testList: `${API_BASE_URL}/test/list`,
   createTest: `${API_BASE_URL}/test/create`,
+  saveTestCharges: `${API_BASE_URL}/test/save`,
   getTest: `${API_BASE_URL}/test/get`,
   updateTest: `${API_BASE_URL}/test/update`,
   deleteTest: `${API_BASE_URL}/test/delete`,
@@ -46,6 +47,7 @@ export const API_ENDPOINTS = {
   getParameter: `${API_BASE_URL}/parameter/get`,
   updateParameter: `${API_BASE_URL}/parameter/update`,
   deleteParameter: `${API_BASE_URL}/parameter/delete`,
+  updateConfig: "http://localhost:8088/config/update",
 } as const;
 
 export function getPatientListByLabId(labId: number | string) {
@@ -73,6 +75,10 @@ export function getPendingReportsByPatientId(
 
 export function getDoctorListByLabId(labId: number | string) {
   return `${API_BASE_URL}/doctor/list/labId/${labId}`;
+}
+
+export function getTestListByLabId(labId: number | string) {
+  return `${API_BASE_URL}/test/list/labId/${labId}`;
 }
 
 export function getConfigByLabId(labId: number | string) {
@@ -158,7 +164,7 @@ export async function parseApiResponse<T>(response: Response) {
 }
 
 export function stringifyApiPayload(
-  payload: Record<string, unknown>,
+  payload: Record<string, unknown> | unknown[],
   integerKeys: string[] = [],
 ) {
   const integerKeySet = new Set(integerKeys);

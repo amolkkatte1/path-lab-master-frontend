@@ -111,6 +111,77 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.test-charges-table {
+  background: rgba(2, 6, 23, 0.45);
+}
+
+.test-charges-input {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.test-charges-input::placeholder {
+  color: #94a3b8;
+}
+
+.theme-light .workspace-shell .test-charges-table {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.theme-light .workspace-shell .test-charges-table thead {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.theme-light .workspace-shell .test-charges-table tbody tr {
+  color: #334155;
+}
+
+.theme-light .workspace-shell .test-charges-table tbody tr > td:first-child {
+  color: #475569;
+}
+
+.theme-light .workspace-shell .test-charges-input {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  color-scheme: light;
+}
+
+.theme-light .workspace-shell .test-charges-input::placeholder {
+  color: #64748b;
+}
+
+.tests-table-count {
+  background: rgba(56, 189, 248, 0.15);
+  color: #bae6fd;
+}
+
+.tests-table-link {
+  color: #bae6fd;
+}
+
+.tests-table-link:hover {
+  color: #ffffff;
+}
+
+.theme-light .workspace-shell .tests-table-count {
+  background: #e0f2fe;
+  color: #075985;
+}
+
+.theme-light .workspace-shell .tests-table-link,
+.theme-light .workspace-shell .tests-table-link:hover {
+  color: #0369a1;
+}
+
+.theme-light .workspace-shell .tests-table-filter-row {
+  background: #f1f5f9;
+}
+
 .patient-filter-panel {
   border-color: rgba(148, 163, 184, 0.28);
   background: rgba(15, 23, 42, 0.72);

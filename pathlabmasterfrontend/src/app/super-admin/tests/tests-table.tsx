@@ -11,6 +11,7 @@ import type { ApiTest } from "./test-types";
 type SortKey =
   | "testId"
   | "testName"
+  | "serviceShortName"
   | "serviceName"
   | "serviceGroupName"
   | "labName"
@@ -24,6 +25,7 @@ type TestsTableProps = {
 type FilterState = {
   testId: string;
   testName: string;
+  serviceShortName: string;
   serviceName: string;
   serviceGroupName: string;
   labName: string;
@@ -33,6 +35,7 @@ type FilterState = {
 const initialFilters: FilterState = {
   testId: "",
   testName: "",
+  serviceShortName: "",
   serviceName: "",
   serviceGroupName: "",
   labName: "",
@@ -45,6 +48,10 @@ function getTestIdValue(test: ApiTest) {
 
 function getTestNameValue(test: ApiTest) {
   return test.testName ?? "";
+}
+
+function getServiceShortNameValue(test: ApiTest) {
+  return test.serviceShortName ?? "";
 }
 
 function getServiceNameValue(test: ApiTest) {
@@ -116,6 +123,7 @@ export function TestsTable({ tests }: TestsTableProps) {
     return (
       includesFilter(getTestIdValue(test), deferredFilters.testId) &&
       includesFilter(getTestNameValue(test), deferredFilters.testName) &&
+      includesFilter(getServiceShortNameValue(test), deferredFilters.serviceShortName) &&
       includesFilter(getServiceNameValue(test), deferredFilters.serviceName) &&
       includesFilter(getServiceGroupNameValue(test), deferredFilters.serviceGroupName) &&
       includesFilter(getLabNameValue(test), deferredFilters.labName) &&
@@ -129,26 +137,30 @@ export function TestsTable({ tests }: TestsTableProps) {
         ? getTestIdValue(left)
         : sortKey === "testName"
           ? getTestNameValue(left)
-          : sortKey === "serviceName"
-            ? getServiceNameValue(left)
-            : sortKey === "serviceGroupName"
-              ? getServiceGroupNameValue(left)
-              : sortKey === "labName"
-                ? getLabNameValue(left)
-                : getChargesValue(left);
+          : sortKey === "serviceShortName"
+            ? getServiceShortNameValue(left)
+            : sortKey === "serviceName"
+              ? getServiceNameValue(left)
+              : sortKey === "serviceGroupName"
+                ? getServiceGroupNameValue(left)
+                : sortKey === "labName"
+                  ? getLabNameValue(left)
+                  : getChargesValue(left);
 
     const rightValue =
       sortKey === "testId"
         ? getTestIdValue(right)
         : sortKey === "testName"
           ? getTestNameValue(right)
-          : sortKey === "serviceName"
-            ? getServiceNameValue(right)
-            : sortKey === "serviceGroupName"
-              ? getServiceGroupNameValue(right)
-              : sortKey === "labName"
-                ? getLabNameValue(right)
-                : getChargesValue(right);
+          : sortKey === "serviceShortName"
+            ? getServiceShortNameValue(right)
+            : sortKey === "serviceName"
+              ? getServiceNameValue(right)
+              : sortKey === "serviceGroupName"
+                ? getServiceGroupNameValue(right)
+                : sortKey === "labName"
+                  ? getLabNameValue(right)
+                  : getChargesValue(right);
 
     const comparison = leftValue.localeCompare(rightValue, undefined, {
       numeric: true,
@@ -177,7 +189,7 @@ export function TestsTable({ tests }: TestsTableProps) {
       <div className="flex flex-col gap-3 border-b border-white/10 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
         <h3 className="font-semibold text-white">All Tests</h3>
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-sky-400/15 px-3 py-1 text-xs font-semibold text-sky-200">
+          <span className="tests-table-count rounded-full px-3 py-1 text-xs font-semibold">
             Showing {sortedTests.length} of {tests.length}
           </span>
           <button
@@ -190,68 +202,76 @@ export function TestsTable({ tests }: TestsTableProps) {
         </div>
       </div>
 
-      <div className="max-w-full overflow-x-auto">
-        <table className="w-full min-w-[1000px] text-left text-sm">
+      <div className="w-full min-w-0">
+        <table className="w-full table-fixed text-left text-xs sm:text-sm">
           <thead className="text-slate-400">
             <tr className="text-xs uppercase tracking-[0.16em]">
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("testId")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("testId")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Test ID
                   {renderSortIndicator(sortKey, sortDirection, "testId")}
                 </button>
               </th>
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("testName")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("testName")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Test Name
                   {renderSortIndicator(sortKey, sortDirection, "testName")}
                 </button>
               </th>
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("serviceName")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("serviceShortName")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
+                  Code
+                  {renderSortIndicator(sortKey, sortDirection, "serviceShortName")}
+                </button>
+              </th>
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("serviceName")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Service
                   {renderSortIndicator(sortKey, sortDirection, "serviceName")}
                 </button>
               </th>
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("serviceGroupName")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("serviceGroupName")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Group
                   {renderSortIndicator(sortKey, sortDirection, "serviceGroupName")}
                 </button>
               </th>
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("labName")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("labName")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Lab
                   {renderSortIndicator(sortKey, sortDirection, "labName")}
                 </button>
               </th>
-              <th className="px-5 py-4 font-semibold">
-                <button type="button" onClick={() => toggleSort("testCharges")} className="flex items-center gap-2 text-left transition">
+              <th className="break-words px-2 py-3 font-semibold sm:px-5 sm:py-4">
+                <button type="button" onClick={() => toggleSort("testCharges")} className="flex min-w-0 flex-wrap items-center gap-1 text-left transition sm:gap-2">
                   Charges
                   {renderSortIndicator(sortKey, sortDirection, "testCharges")}
                 </button>
               </th>
-              <th className="px-5 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">
+              <th className="break-words px-2 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-slate-400 sm:px-5 sm:py-4">
                 Actions
               </th>
             </tr>
 
-            <tr className="border-y border-white/10 bg-slate-900/30">
+            <tr className="tests-table-filter-row border-y border-white/10 bg-slate-900/30">
               {[
                 ["testId", "Filter ID"],
                 ["testName", "Filter test"],
+                ["serviceShortName", "Filter code"],
                 ["serviceName", "Filter service"],
                 ["serviceGroupName", "Filter group"],
                 ["labName", "Filter lab"],
                 ["testCharges", "Filter charges"],
               ].map(([key, placeholder]) => (
-                <th key={key} className="px-5 py-3 text-left font-medium text-slate-300">
-                  <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2.5 py-2">
-                    <FiSearch className="h-3.5 w-3.5 text-slate-400" />
+                <th key={key} className="px-1 py-2 text-left font-medium text-slate-300 sm:px-3 sm:py-3">
+                  <div className="flex min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-white/5 px-1 py-2 sm:gap-2 sm:px-2.5">
+                    <FiSearch className="hidden h-3.5 w-3.5 shrink-0 text-slate-400 sm:block" />
                     <input
                       value={filters[key as keyof FilterState]}
                       onChange={(event) => updateFilter(key as keyof FilterState, event.target.value)}
                       placeholder={placeholder}
-                      className="w-full bg-transparent text-xs text-white placeholder:text-slate-400 focus:outline-none"
+                      aria-label={placeholder}
+                      className="w-full min-w-0 bg-transparent text-[10px] text-white placeholder:text-slate-400 focus:outline-none sm:text-xs"
                     />
                   </div>
                 </th>
@@ -262,20 +282,21 @@ export function TestsTable({ tests }: TestsTableProps) {
           <tbody className="divide-y divide-white/8">
             {sortedTests.map((test) => (
               <tr key={String(test.testId ?? test.testName ?? "test")} className="border-t border-white/10 transition hover:bg-white/5">
-                <td className="px-5 py-4">
+                <td className="break-words px-2 py-3 sm:px-5 sm:py-4">
                   <Link
                     href={`/super-admin/tests/edit/${test.testId ?? ""}`}
-                    className="font-semibold text-sky-200 transition hover:text-white hover:underline"
+                    className="tests-table-link font-semibold transition hover:underline"
                   >
                     {test.testId ?? "—"}
                   </Link>
                 </td>
-                <td className="px-5 py-4 text-slate-200">{test.testName ?? "—"}</td>
-                <td className="px-5 py-4 text-slate-200">{test.serviceName ?? "—"}</td>
-                <td className="px-5 py-4 text-slate-200">{test.serviceGroupName ?? "—"}</td>
-                <td className="px-5 py-4 text-slate-200">{test.labName ?? "—"}</td>
-                <td className="px-5 py-4 text-slate-200">{test.testCharges ?? "—"}</td>
-                <td className="px-5 py-4 text-right">
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.testName ?? "—"}</td>
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.serviceShortName ?? "—"}</td>
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.serviceName ?? "—"}</td>
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.serviceGroupName ?? "—"}</td>
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.labName ?? "—"}</td>
+                <td className="break-words px-2 py-3 text-slate-200 sm:px-5 sm:py-4">{test.testCharges ?? "—"}</td>
+                <td className="px-2 py-3 text-right sm:px-5 sm:py-4">
                   <div className="flex justify-end">
                     <DeleteTestButton testId={test.testId ?? ""} />
                   </div>

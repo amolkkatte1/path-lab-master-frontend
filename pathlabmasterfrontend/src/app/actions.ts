@@ -7,6 +7,7 @@ import {
   API_ENDPOINTS,
   getDoctorListByLabId,
   getPendingReportsByPatientId,
+  getTestListByLabId,
   getConfigByLabId,
   getOcrTestKeysFromConfig,
   getOcrColumnCountFromConfig,
@@ -22,6 +23,11 @@ import {
   requireUserType,
   setSessionUser,
 } from "@/lib/auth";
+import type {
+  ConfigurationApiResponse,
+  LabConfiguration,
+  LabConfigurationValues,
+} from "@/app/admin/settings/configuration/configuration-types";
 
 export async function login(formData: FormData) {
   const username = String(formData.get("username") ?? "");
@@ -316,6 +322,240 @@ export async function updateTest(formData: FormData) {
   }
 
   redirect("/super-admin/tests?updated=1");
+}
+
+type TestChargeUpdate = {
+  testId: number | string;
+  testCharges: number;
+};
+
+type LabTestRecord = {
+  testId: number | string;
+  testName: string;
+  parameterGroupList: string;
+  parameterList: string;
+  serviceId: number | string;
+  serviceName: string;
+  serviceShortName: string;
+  serviceGroupId: number | string;
+  labName: string;
+  labId: number | string;
+  serviceGroupName: string | null;
+  testCharges: number;
+  isImageUploadEnable: boolean;
+  createdBy: number | string;
+  updatedBy: number | string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function saveTestCharges(
+  updates: TestChargeUpdate[],
+): Promise<{ success: true } | { success: false; error: string }> {
+  const currentUser = await requireUserType("Administrator");
+
+  if (
+    !Array.isArray(updates) ||
+    updates.some(
+      (test) =>
+        !test ||
+        !test.testId ||
+        !Number.isFinite(test.testCharges) ||
+        test.testCharges < 0,
+    )
+  ) {
+    return { success: false, error: "The test charge updates are invalid." };
+  }
+  if (new Set(updates.map((test) => String(test.testId))).size !== updates.length) {
+    return { success: false, error: "The test charge updates contain duplicate tests." };
+  }
+
+  if (updates.length === 0) {
+    return { success: true };
+  }
+
+  try {
+    const listResponse = await fetch(getTestListByLabId(currentUser.labId), {
+      cache: "no-store",
+    });
+    if (!listResponse.ok) {
+      return {
+        success: false,
+        error: `The test service returned status ${listResponse.status} while verifying updates.`,
+      };
+    }
+    const listPayload = await parseApiResponse<
+      LabTestRecord[] | { data?: LabTestRecord[] | null }
+    >(listResponse);
+    const availableTests = Array.isArray(listPayload)
+      ? listPayload
+      : listPayload.data ?? [];
+    const testsById = new Map(
+      availableTests.map((test) => [String(test.testId), test]),
+    );
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const payload: LabTestRecord[] = [];
+
+    for (const update of updates) {
+      const test = testsById.get(String(update.testId));
+      if (!test) {
+        return {
+          success: false,
+          error: "One or more selected tests are not available for this laboratory. Reload and try again.",
+        };
+      }
+      payload.push({
+        ...test,
+        testCharges: update.testCharges,
+        labId: currentUser.labId,
+        updatedBy: currentUser.userId,
+        updatedAt: now,
+      });
+    }
+
+    const response = await fetch(API_ENDPOINTS.saveTestCharges, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, [
+        "testId",
+        "serviceId",
+        "serviceGroupId",
+        "labId",
+        "createdBy",
+        "updatedBy",
+      ]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `The test service rejected the updates (status ${response.status}).`,
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      error: "Unable to connect to the test service. Please try again.",
+    };
+  }
+
+  return { success: true };
+}
+
+export async function updateLabConfiguration(
+  configId: number | string,
+  values: LabConfigurationValues,
+): Promise<{ success: true } | { success: false; error: string }> {
+  const currentUser = await requireUserType("Administrator");
+
+  if (!configId || !values || typeof values !== "object") {
+    return { success: false, error: "The configuration updates are invalid." };
+  }
+
+  const numericValues = [
+    values.reportTopSpace,
+    values.reportBottomSpace,
+    values.qrCodeHorizantalPosition,
+    values.qrCodeVerticalPosition,
+    values.columnCount,
+  ];
+  if (
+    numericValues.some(
+      (value) => typeof value !== "number" || !Number.isFinite(value) || value < 0,
+    ) ||
+    (values.lineSpace !== null &&
+      (typeof values.lineSpace !== "number" ||
+        !Number.isFinite(values.lineSpace) ||
+        values.lineSpace < 0)) ||
+    !Number.isInteger(values.qrCodeHorizantalPosition) ||
+    !Number.isInteger(values.qrCodeVerticalPosition) ||
+    !Number.isInteger(values.columnCount) ||
+    values.columnCount < 1 ||
+    typeof values.qrCodeRequired !== "boolean" ||
+    !values.testKeys ||
+    typeof values.testKeys !== "object" ||
+    Array.isArray(values.testKeys) ||
+    !Object.values(values.testKeys).every(
+      (keys) =>
+        Array.isArray(keys) &&
+        keys.every((key) => typeof key === "string"),
+    ) ||
+    !values.testKeyMapping ||
+    typeof values.testKeyMapping !== "object" ||
+    Array.isArray(values.testKeyMapping) ||
+    !Object.values(values.testKeyMapping).every(
+      (mapping) =>
+        typeof mapping === "object" &&
+        mapping !== null &&
+        !Array.isArray(mapping) &&
+        Object.values(mapping).every((key) => typeof key === "string"),
+    )
+  ) {
+    return { success: false, error: "One or more configuration values are invalid." };
+  }
+
+  try {
+    const configResponse = await fetch(getConfigByLabId(currentUser.labId), {
+      cache: "no-store",
+    });
+    if (!configResponse.ok) {
+      return {
+        success: false,
+        error: `The configuration service returned status ${configResponse.status} while verifying the update.`,
+      };
+    }
+
+    const configPayload =
+      await parseApiResponse<ConfigurationApiResponse>(configResponse);
+    const existingConfig = (
+      "data" in configPayload ? configPayload.data : configPayload
+    ) as LabConfiguration | null;
+    if (
+      !existingConfig ||
+      String(existingConfig.configId) !== String(configId) ||
+      String(existingConfig.labId) !== String(currentUser.labId)
+    ) {
+      return {
+        success: false,
+        error: "This configuration is not available for your laboratory. Reload and try again.",
+      };
+    }
+
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+    const payload: LabConfiguration = {
+      ...existingConfig,
+      ...values,
+      labId: currentUser.labId,
+      updatedBy: currentUser.userId,
+      updatedAt: now,
+    };
+    const response = await fetch(API_ENDPOINTS.updateConfig, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, [
+        "configId",
+        "labId",
+        "createdBy",
+        "updatedBy",
+      ]),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return {
+        success: false,
+        error: `The configuration service rejected the update (status ${response.status}).`,
+      };
+    }
+  } catch {
+    return {
+      success: false,
+      error: "Unable to connect to the configuration service. Please try again.",
+    };
+  }
+
+  return { success: true };
 }
 
 export async function deleteTest(formData: FormData) {

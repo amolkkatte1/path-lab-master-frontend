@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FiBarChart2, FiClipboard, FiFileText, FiHome, FiPackage, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
+import { useState } from "react";
+import { FiBarChart2, FiChevronDown, FiClipboard, FiFileText, FiHome, FiPackage, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: FiHome },
@@ -12,11 +13,12 @@ const items = [
   { href: "/admin/reports", label: "Reports", icon: FiFileText },
   { href: "/admin/analytics", label: "Analytics", icon: FiBarChart2 },
   { href: "/admin/subscription", label: "Subscriptions", icon: FiPackage },
-  { href: "/admin/settings", label: "Settings", icon: FiSettings },
 ];
 
 export function AdminSidebarNav() {
   const pathname = usePathname();
+  const settingsActive = pathname.startsWith("/admin/settings");
+  const [settingsExpanded, setSettingsExpanded] = useState(settingsActive);
 
   return (
     <div className="space-y-8">
@@ -43,6 +45,7 @@ export function AdminSidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSettingsExpanded(false)}
                 className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-sm font-medium transition ${
                   active
                     ? "bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.28)]"
@@ -54,6 +57,54 @@ export function AdminSidebarNav() {
               </Link>
             );
           })}
+          <div>
+            <button
+              type="button"
+              aria-expanded={settingsExpanded}
+              aria-controls="admin-settings-submenu"
+              onClick={() => setSettingsExpanded((expanded) => !expanded)}
+              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-medium transition ${
+                settingsActive
+                  ? "bg-emerald-500 text-white shadow-[0_10px_30px_rgba(16,185,129,0.28)]"
+                  : "text-slate-300 hover:bg-white/8 hover:text-white"
+              }`}
+            >
+              <FiSettings className="h-4 w-4 shrink-0" />
+              <span className="flex-1">Settings</span>
+              <FiChevronDown
+                aria-hidden="true"
+                className={`h-4 w-4 transition-transform ${
+                  settingsExpanded ? "rotate-180" : ""
+                }`}
+              />
+            </button>
+            {settingsExpanded && (
+              <div id="admin-settings-submenu" className="mt-1.5 space-y-1 pl-10">
+                <Link
+                  href="/admin/settings/test-charges"
+                  aria-current={pathname === "/admin/settings/test-charges" ? "page" : undefined}
+                  className={`block rounded-xl px-3 py-2.5 text-sm transition ${
+                    pathname === "/admin/settings/test-charges"
+                      ? "bg-emerald-500/20 text-emerald-100"
+                      : "text-slate-300 hover:bg-white/8 hover:text-white"
+                  }`}
+                >
+                  Test Charges
+                </Link>
+                <Link
+                  href="/admin/settings/configuration"
+                  aria-current={pathname === "/admin/settings/configuration" ? "page" : undefined}
+                  className={`block rounded-xl px-3 py-2.5 text-sm transition ${
+                    pathname === "/admin/settings/configuration"
+                      ? "bg-emerald-500/20 text-emerald-100"
+                      : "text-slate-300 hover:bg-white/8 hover:text-white"
+                  }`}
+                >
+                  Configuration
+                </Link>
+              </div>
+            )}
+          </div>
         </nav>
       </div>
     </div>

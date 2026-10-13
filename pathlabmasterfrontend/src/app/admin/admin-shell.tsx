@@ -25,8 +25,8 @@ export function AdminShell({
   }, [pathname]);
 
   return (
-    <div className="workspace-shell h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_#15304f_0%,_#07121f_42%,_#020617_100%)] text-white">
-      <div className="flex h-screen">
+    <div className="workspace-shell fixed inset-0 h-dvh overflow-hidden bg-[radial-gradient(circle_at_top,_#15304f_0%,_#07121f_42%,_#020617_100%)] text-white">
+      <div className="flex h-full">
         <div
           aria-hidden="true"
           onClick={() => setSidebarOpen(false)}
@@ -58,7 +58,7 @@ export function AdminShell({
           {sidebarContent}
         </aside>
 
-        <div className="flex h-screen min-h-0 min-w-0 flex-1 flex-col">
+        <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
           <header className="fixed inset-x-0 top-0 z-30 border-b border-white/10 bg-slate-950/85 px-3 py-3 backdrop-blur sm:px-6 sm:py-4 lg:left-[250px] lg:px-8 lg:py-3 xl:left-[290px]">
             <div className="flex items-start gap-3">
               <button

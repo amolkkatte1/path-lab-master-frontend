@@ -1,3 +1,5 @@
+import "server-only";
+
 import Link from "next/link";
 import { FiPlus } from "react-icons/fi";
 
