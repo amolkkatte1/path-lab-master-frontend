@@ -1,7 +1,9 @@
+import "server-only";
+
 import { FiClipboard } from "react-icons/fi";
 import type { ReactNode } from "react";
 
-import { API_ENDPOINTS, getPendingReportsByPatientId, parseApiResponse } from "@/lib/api";
+import { getPendingReportsByPatientId, getTestListByLabId, parseApiResponse } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import { getExistingBillingForPatient } from "@/app/actions";
 import { TestRegistrationForm, type AvailableTest } from "./test-registration-form";
@@ -27,9 +29,9 @@ type PendingReportsResponse = {
   } | null;
 };
 
-async function getTests() {
+async function getTests(labId: number) {
   try {
-    const response = await fetch(API_ENDPOINTS.testList, { cache: "no-store" });
+    const response = await fetch(getTestListByLabId(labId), { cache: "no-store" });
     if (!response.ok) {
       return { tests: [], error: `The test service returned ${response.status}.` };
     }
@@ -79,7 +81,7 @@ export default async function TestRegistrationPage({
   const { patientId, patientName, mobileNumber } = await searchParams;
 
   const [{ tests, error }, alreadyRegisteredKeys, existingBilling] = await Promise.all([
-    getTests(),
+    getTests(user.labId),
     patientId
       ? getAlreadyRegisteredTestKeys(patientId, user.labId)
       : Promise.resolve([] as string[]),
