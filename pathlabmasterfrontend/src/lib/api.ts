@@ -47,7 +47,7 @@ export const API_ENDPOINTS = {
   getParameter: `${API_BASE_URL}/parameter/get`,
   updateParameter: `${API_BASE_URL}/parameter/update`,
   deleteParameter: `${API_BASE_URL}/parameter/delete`,
-  updateConfig: "http://localhost:8088/config/update",
+  updateConfig: `${API_BASE_URL}/config/update`,
 } as const;
 
 export function getPatientListByLabId(labId: number | string) {
