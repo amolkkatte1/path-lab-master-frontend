@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FiTrash2 } from "react-icons/fi";
 import { updateBillingRecord } from "@/app/actions";
 
 type BillData = {
@@ -60,7 +59,10 @@ export function EditBillForm({ patientId, patientName, bill }: { patientId: stri
       <header className="rounded-2xl border border-white/10 bg-white/10 p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">Edit bill</p>
         <h1 className="mt-1 text-xl font-semibold">{patientName}</h1>
-        <p className="mt-1 text-sm text-slate-400">Patient ID: {patientId} · Bill ID: {bill.billId ?? "-"}</p>
+        <p className="mt-1 flex flex-wrap gap-x-3 text-sm text-slate-400">
+          <span className="whitespace-nowrap">Patient ID: {patientId}</span>
+          <span className="whitespace-nowrap">Bill ID: {bill.billId ?? "-"}</span>
+        </p>
         <p className="mt-1 text-sm text-slate-400">Referring doctor: {bill.doctorName || "-"}</p>
       </header>
 
@@ -68,16 +70,15 @@ export function EditBillForm({ patientId, patientName, bill }: { patientId: stri
 
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/45">
         <table className="w-full text-left text-sm">
-          <thead className="text-slate-400"><tr><th className="px-4 py-3">Test</th><th className="px-4 py-3">Amount (₹)</th><th className="w-14 px-4 py-3" /></tr></thead>
+          <thead className="text-slate-400"><tr><th className="px-4 py-3">Test</th><th className="px-4 py-3">Amount (₹)</th></tr></thead>
           <tbody className="divide-y divide-white/10">
             {tests.map((test, index) => (
               <tr key={index}>
                 <td className="px-4 py-3"><input aria-label={`Test name ${index + 1}`} value={test.testName} onChange={(event) => setTests((current) => current.map((item, row) => row === index ? { ...item, testName: event.target.value } : item))} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-emerald-300/50" /></td>
                 <td className="px-4 py-3"><input aria-label={`Test amount ${index + 1}`} type="number" min="0" step="0.01" value={test.testCharges} onChange={(event) => setTests((current) => current.map((item, row) => row === index ? { ...item, testCharges: event.target.value } : item))} className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-white outline-none focus:border-emerald-300/50" /></td>
-                <td className="px-4 py-3"><button type="button" aria-label={`Remove ${test.testName || "test"}`} onClick={() => setTests((current) => current.filter((_, row) => row !== index))} className="text-rose-300 hover:text-rose-200"><FiTrash2 /></button></td>
               </tr>
             ))}
-            {tests.length === 0 && <tr><td colSpan={3} className="px-4 py-6 text-center text-slate-400">No tests on this bill.</td></tr>}
+            {tests.length === 0 && <tr><td colSpan={2} className="px-4 py-6 text-center text-slate-400">No tests on this bill.</td></tr>}
           </tbody>
         </table>
       </div>
