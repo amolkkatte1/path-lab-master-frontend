@@ -262,9 +262,9 @@ export function ConfigurationEditor({ config, loadError }: ConfigurationEditorPr
               <textarea
                 rows={10}
                 value={formValues.testKeys}
-                onChange={(event) => updateField("testKeys", event.target.value)}
+                readOnly
                 spellCheck={false}
-                className="patient-filter-input w-full rounded-lg border px-3 py-2 font-mono text-xs"
+                className="patient-filter-input w-full cursor-text rounded-lg border px-3 py-2 font-mono text-xs"
               />
             </label>
             <label className="space-y-1.5 text-sm text-slate-300">
@@ -272,9 +272,9 @@ export function ConfigurationEditor({ config, loadError }: ConfigurationEditorPr
               <textarea
                 rows={10}
                 value={formValues.testKeyMapping}
-                onChange={(event) => updateField("testKeyMapping", event.target.value)}
+                readOnly
                 spellCheck={false}
-                className="patient-filter-input w-full rounded-lg border px-3 py-2 font-mono text-xs"
+                className="patient-filter-input w-full cursor-text rounded-lg border px-3 py-2 font-mono text-xs"
               />
             </label>
           </div>
