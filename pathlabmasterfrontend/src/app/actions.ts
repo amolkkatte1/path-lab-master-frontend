@@ -1463,6 +1463,72 @@ export async function getExistingBillingForPatient({
   }
 }
 
+export async function updateBillingRecord({
+  patientId,
+  testList,
+  discount,
+  paymentReceived,
+  collectedByDoctor,
+}: {
+  patientId: string;
+  testList: Array<{ testName: string; testCharges: number | string }>;
+  discount: number | string;
+  paymentReceived: number | string;
+  collectedByDoctor: number | string;
+}) {
+  const currentUser = await requireUserType("Administrator");
+  const existingBilling = await getExistingBillingForPatient({ patientId, labId: currentUser.labId });
+  if (!existingBilling?.billId) {
+    return { ok: false as const, error: "No bill was found for this patient." };
+  }
+
+  const safeNumber = (value: number | string) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+  };
+  const numericDiscount = safeNumber(discount);
+  const numericPaymentReceived = safeNumber(paymentReceived);
+  const numericCollectedByDoctor = safeNumber(collectedByDoctor);
+  const numericTotalAmount = testList.reduce((sum, test) => sum + safeNumber(test.testCharges), 0);
+  const paymentDue = Math.max(numericTotalAmount - numericDiscount - numericPaymentReceived - numericCollectedByDoctor, 0);
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  const testMap: Record<string, number> = {};
+  testList.forEach((test) => {
+    const name = test.testName.trim();
+    if (name) testMap[name] = safeNumber(test.testCharges);
+  });
+  const payload = {
+    billId: existingBilling.billId,
+    patientId,
+    doctorName: existingBilling.doctorName ?? "",
+    doctorId: existingBilling.doctorId ?? "",
+    labId: existingBilling.labId ?? currentUser.labId,
+    testList: testMap,
+    totalAmount: numericTotalAmount,
+    paymentReceived: numericPaymentReceived,
+    paymentDue,
+    discount: numericDiscount,
+    collectedByDoctor: numericCollectedByDoctor,
+    createdBy: existingBilling.createdBy ?? currentUser.userId,
+    updatedBy: currentUser.userId,
+    createdAt: existingBilling.createdAt ?? now,
+    updatedAt: now,
+  };
+
+  try {
+    const response = await fetch(API_ENDPOINTS.billingUpdate, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: stringifyApiPayload(payload, ["billId", "patientId", "doctorId", "labId", "createdBy", "updatedBy"]),
+      cache: "no-store",
+    });
+    if (!response.ok) return { ok: false as const, error: `Billing save failed (${response.status}).` };
+    return { ok: true as const };
+  } catch {
+    return { ok: false as const, error: "Unable to save billing details." };
+  }
+}
+
 export async function registerReportWithBilling({
   patientId,
   testList,

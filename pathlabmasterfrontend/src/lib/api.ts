@@ -34,6 +34,8 @@ export const API_ENDPOINTS = {
   reportBilling: `${API_BASE_URL}/report/billing`,
   billingCreate: `${API_BASE_URL}/billing/create`,
   billingUpdate: `${API_BASE_URL}/billing/update`,
+  billingGenerate: (labId: number | string, patientId: number | string) =>
+    `${API_BASE_URL}/billing/generate/lId/${labId}/pId/${patientId}`,
   ocrExtract: "/api/ocr/extract",
   reportListFilter: `${API_BASE_URL}/report/list/filter`,
   patientListFilter: `${API_BASE_URL}/patient/list/filter`,

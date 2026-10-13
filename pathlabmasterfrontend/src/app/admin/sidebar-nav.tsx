@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { FiBarChart2, FiChevronDown, FiClipboard, FiFileText, FiHome, FiPackage, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
+import { FiChevronDown, FiClipboard, FiFileText, FiHome, FiPackage, FiSettings, FiUserCheck, FiUsers } from "react-icons/fi";
+import { TbCurrencyRupee } from "react-icons/tb";
 
 const items = [
   { href: "/admin", label: "Dashboard", icon: FiHome },
@@ -11,7 +12,7 @@ const items = [
   { href: "/admin/doctors", label: "Doctors", icon: FiUserCheck },
   // { href: "/admin/tests", label: "Test Requests", icon: FiClipboard },
   { href: "/admin/reports", label: "Reports", icon: FiFileText },
-  { href: "/admin/analytics", label: "Analytics", icon: FiBarChart2 },
+  { href: "/admin/billing", label: "Billing", icon: TbCurrencyRupee },
   { href: "/admin/subscription", label: "Subscriptions", icon: FiPackage },
 ];
 
