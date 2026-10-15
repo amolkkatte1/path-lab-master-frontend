@@ -101,7 +101,7 @@ export function AgeFields({ initialDateOfBirth = "", initialAge }: Readonly<AgeF
             className="w-full rounded-xl border border-slate-300 px-3 py-2.5 pr-11 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
           />
           <button type="button" onClick={openDatePicker} aria-label="Open date picker" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-emerald-600"><FiCalendar /></button>
-          <input ref={dateInputRef} name="dateOfBirth" type="date" value={dateOfBirth} required aria-label="Date of birth" onChange={(event) => handleDateChange(event.target.value)} className="sr-only" />
+          <input ref={dateInputRef} name="dateOfBirth" type="date" value={dateOfBirth} required aria-label="Date of birth" onChange={(event) => handleDateChange(event.target.value)} className="absolute right-0 top-0 h-full w-12 cursor-pointer opacity-0" />
         </div>
       </label>
       <div className="col-span-full grid grid-cols-3 gap-3">

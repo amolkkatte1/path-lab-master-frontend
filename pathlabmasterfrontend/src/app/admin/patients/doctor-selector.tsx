@@ -58,11 +58,18 @@ export function DoctorSelector({
       const rect = inputWrapperRef.current?.getBoundingClientRect();
       if (!rect) return;
       const gap = 8;
-      const below = window.innerHeight - rect.bottom - gap;
+      // Safari's visual viewport moves/resizes when its on-screen keyboard opens.
+      // Fixed portal coordinates use the layout viewport, so include the visual
+      // viewport offset while measuring the space available below the field.
+      const viewport = window.visualViewport;
+      const viewportOffsetTop = viewport?.offsetTop ?? 0;
+      const viewportOffsetLeft = viewport?.offsetLeft ?? 0;
+      const viewportHeight = viewport?.height ?? window.innerHeight;
+      const below = viewportHeight - rect.bottom - gap;
       const maxHeight = Math.max(100, Math.min(320, below));
       setDropdownRect({
-        left: rect.left,
-        top: rect.bottom + gap,
+        left: rect.left + viewportOffsetLeft,
+        top: rect.bottom + viewportOffsetTop + gap,
         width: rect.width,
         maxHeight,
       });
@@ -71,9 +78,13 @@ export function DoctorSelector({
     updateDropdownPosition();
     window.addEventListener("resize", updateDropdownPosition);
     window.addEventListener("scroll", updateDropdownPosition, true);
+    window.visualViewport?.addEventListener("resize", updateDropdownPosition);
+    window.visualViewport?.addEventListener("scroll", updateDropdownPosition);
     return () => {
       window.removeEventListener("resize", updateDropdownPosition);
       window.removeEventListener("scroll", updateDropdownPosition, true);
+      window.visualViewport?.removeEventListener("resize", updateDropdownPosition);
+      window.visualViewport?.removeEventListener("scroll", updateDropdownPosition);
     };
   }, [isDropdownOpen]);
 

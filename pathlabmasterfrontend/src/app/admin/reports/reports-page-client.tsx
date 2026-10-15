@@ -416,18 +416,22 @@ export default function ReportsPageClient({
     return () => clearTimeout(timer);
   }, [dateRangeError]);
 
-  async function handleSearch() {
-    // Validate date range ≤ 31 days
+  function hasValidDateRange() {
     if (filters.fromDate && filters.toDate) {
       const from = new Date(filters.fromDate);
       const to = new Date(filters.toDate);
       const diffDays = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
       if (diffDays > 31) {
         setDateRangeError("Difference between from date and to date should not be greater than 31 Day(s)!");
-        return;
+        return false;
       }
     }
     setDateRangeError(null);
+    return true;
+  }
+
+  async function handleSearch() {
+    if (!hasValidDateRange()) return;
     const result = await getReportList(filters);
     setRows(result.reports.map(mapReportApiItem));
   }
@@ -465,6 +469,8 @@ export default function ReportsPageClient({
   }
 
   function handleExport(kind: "pdf" | "xls") {
+    if (!hasValidDateRange()) return;
+
     const params = new URLSearchParams({
       fromDate: filters.fromDate || "",
       toDate: filters.toDate || "",

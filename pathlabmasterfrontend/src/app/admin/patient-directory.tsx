@@ -109,7 +109,7 @@ function DateInput({
         }}
         aria-hidden="true"
         tabIndex={-1}
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-0"
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       />
     </div>
   );

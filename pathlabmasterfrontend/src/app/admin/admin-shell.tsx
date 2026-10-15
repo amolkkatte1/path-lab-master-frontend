@@ -38,7 +38,7 @@ export function AdminShell({
         />
 
         <aside
-          className={`fixed inset-y-0 left-0 z-50 flex h-screen w-[280px] flex-col overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden border-r border-white/10 bg-slate-950/95 px-5 py-6 backdrop-blur transition-transform duration-300 lg:static lg:min-h-screen lg:w-[250px] lg:translate-x-0 lg:bg-slate-950/70 xl:w-[290px] ${
+          className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-[280px] flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain border-r border-white/10 bg-slate-950/95 px-5 py-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] backdrop-blur transition-transform duration-300 [-webkit-overflow-scrolling:touch] lg:static lg:h-auto lg:min-h-screen lg:w-[250px] lg:translate-x-0 lg:overflow-visible lg:bg-slate-950/70 xl:w-[290px] ${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -55,7 +55,7 @@ export function AdminShell({
               <FiX className="h-5 w-5" />
             </button>
           </div>
-          {sidebarContent}
+          <div className="flex min-h-full flex-col">{sidebarContent}</div>
         </aside>
 
         <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
