@@ -14,6 +14,7 @@ type MdDoctorFormProps = {
 function errorMessage(error: string) {
   if (error === "connection") return "Unable to connect to the MD doctor service. Please try again.";
   if (error === "invalid") return "Complete all required fields with valid values before saving.";
+  if (error === "signature-preserve") return "The existing signature could not be preserved. Please choose the signature image again before saving.";
   return `The MD doctor service rejected the request (status ${error}).`;
 }
 
@@ -43,6 +44,7 @@ export function MdDoctorForm({ action, doctor, error, labName, labId }: Readonly
             <input type="hidden" name="mdDoctorId" value={doctor.mdDoctorId ?? doctor.doctorId ?? ""} />
             <input type="hidden" name="createdBy" value={doctor.createdBy ?? ""} />
             <input type="hidden" name="signUrl" value={doctor.signUrl ?? ""} />
+            <input type="hidden" name="existingSignImage" value={JSON.stringify(doctor.signImage ?? null)} />
           </>
         )}
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
