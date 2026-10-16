@@ -103,6 +103,17 @@ export function AdminSidebarNav() {
                 >
                   Configuration
                 </Link>
+                <Link
+                  href="/admin/settings/doctor-sign"
+                  aria-current={pathname.startsWith("/admin/settings/doctor-sign") ? "page" : undefined}
+                  className={`block rounded-xl px-3 py-2.5 text-sm transition ${
+                    pathname.startsWith("/admin/settings/doctor-sign")
+                      ? "bg-emerald-500/20 text-emerald-100"
+                      : "text-slate-300 hover:bg-white/8 hover:text-white"
+                  }`}
+                >
+                  Doctor Sign
+                </Link>
               </div>
             )}
           </div>

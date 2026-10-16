@@ -941,6 +941,164 @@ export async function updateDoctor(formData: FormData) {
   redirect("/admin/doctors?updated=1");
 }
 
+async function saveMdDoctor(formData: FormData, isUpdate: boolean) {
+  const currentUser = await requireUserType("Administrator");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const mdDoctorId = value("mdDoctorId") || value("doctorId");
+  const doctorName = value("doctorName");
+  const mobileNumber = value("doctorMobileNumber");
+  const email = value("doctorMailId");
+  const signPositionValue = value("signPosition");
+  const numericMobileNumber = Number(mobileNumber);
+  const signPosition = Number(signPositionValue);
+  const signature = formData.get("signature");
+  const hasSignature = signature instanceof File && signature.size > 0;
+  const removeSignature = value("removeSignature") === "true";
+  const existingSignatureValue = value("existingSignImage");
+  const route = isUpdate && mdDoctorId
+    ? `/admin/settings/doctor-sign/edit/${encodeURIComponent(mdDoctorId)}`
+    : "/admin/settings/doctor-sign/create";
+
+  if (
+    !doctorName ||
+    !mobileNumber ||
+    !email ||
+    !signPositionValue ||
+    !Number.isFinite(numericMobileNumber) ||
+    !Number.isInteger(signPosition) ||
+    signPosition < 1 ||
+    (!isUpdate && !hasSignature) ||
+    (removeSignature && (!isUpdate || hasSignature)) ||
+    (isUpdate && !mdDoctorId)
+  ) {
+    redirect(`${route}?error=invalid`);
+  }
+
+  const doctor: Record<string, unknown> = {
+    doctorName,
+    doctorMailId: email,
+    doctorMobileNumber: numericMobileNumber,
+    shairingPercentage: 0,
+    labName: currentUser.labName,
+    labId: String(currentUser.labId),
+    educationQulification: value("educationQulification"),
+    active: value("isActive") === "true",
+    signPosition,
+    createdBy: isUpdate ? Number(value("createdBy") || currentUser.userId) : Number(currentUser.userId),
+  };
+
+  if (!isUpdate || hasSignature || removeSignature) {
+    doctor.signUrl = removeSignature ? null : value("signUrl") || null;
+  }
+  if (isUpdate && mdDoctorId) doctor.mdDoctorId = mdDoctorId;
+  if (removeSignature) doctor.signImage = null;
+
+  const requestBody = new FormData();
+  requestBody.append(
+    "doctor",
+    stringifyApiPayload(doctor, ["labId", "createdBy", "mdDoctorId"]),
+  );
+  if (hasSignature && signature instanceof File) {
+    requestBody.append("signature", signature, signature.name);
+  } else if (isUpdate && !removeSignature) {
+    const existingSignature = getExistingMdDoctorSignature(existingSignatureValue);
+    if (existingSignatureValue && !existingSignature) {
+      redirect(`${route}?error=signature-preserve`);
+    }
+    if (existingSignature) {
+      requestBody.append("signature", existingSignature.blob, existingSignature.fileName);
+    }
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      isUpdate ? API_ENDPOINTS.updateMdDoctor : API_ENDPOINTS.createMdDoctor,
+      {
+        method: "POST",
+        body: requestBody,
+        cache: "no-store",
+      },
+    );
+  } catch {
+    redirect(`${route}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`${route}?error=${response.status}`);
+  }
+
+  redirect("/admin/settings/doctor-sign?updated=1");
+}
+
+function getExistingMdDoctorSignature(value: string) {
+  if (!value || value === "null") return null;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value) as unknown;
+  } catch {
+    parsed = value;
+  }
+
+  let bytes: Uint8Array | null = null;
+  let mimeType = "image/png";
+
+  if (Array.isArray(parsed) && parsed.every(isByte)) {
+    bytes = Uint8Array.from(parsed);
+  } else if (
+    parsed &&
+    typeof parsed === "object" &&
+    "data" in parsed &&
+    Array.isArray(parsed.data) &&
+    parsed.data.every(isByte)
+  ) {
+    bytes = Uint8Array.from(parsed.data);
+  } else if (typeof parsed === "string") {
+    const dataUrl = parsed.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
+    if (dataUrl) {
+      mimeType = dataUrl[1];
+      bytes = Uint8Array.from(Buffer.from(dataUrl[2].replace(/\s/g, ""), "base64"));
+    } else {
+      const hex = parsed.match(/^\\x([a-f0-9]+)$/i);
+      if (hex) {
+        bytes = Uint8Array.from(Buffer.from(hex[1], "hex"));
+      } else {
+        const base64 = parsed.replace(/\s/g, "");
+        if (!/^[a-z0-9+/]+={0,2}$/i.test(base64)) return null;
+        bytes = Uint8Array.from(Buffer.from(base64, "base64"));
+      }
+    }
+  }
+
+  if (!bytes?.length) return null;
+  if (mimeType === "image/png") {
+    if (bytes[0] === 0xff && bytes[1] === 0xd8) mimeType = "image/jpeg";
+    else if (bytes[0] === 0x47 && bytes[1] === 0x49) mimeType = "image/gif";
+    else if (bytes[0] === 0x52 && bytes[1] === 0x49) mimeType = "image/webp";
+  }
+
+  const extension = mimeType.split("/")[1].replace("svg+xml", "svg");
+  const blobBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(blobBuffer).set(bytes);
+  return {
+    blob: new Blob([blobBuffer], { type: mimeType }),
+    fileName: `signature.${extension}`,
+  };
+}
+
+function isByte(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 && value <= 255;
+}
+
+export async function createMdDoctor(formData: FormData) {
+  return saveMdDoctor(formData, false);
+}
+
+export async function updateMdDoctor(formData: FormData) {
+  return saveMdDoctor(formData, true);
+}
+
 export async function deleteDoctor(formData: FormData) {
   await requireUserType("Administrator");
   const doctorId = String(formData.get("doctorId") ?? "").trim();
