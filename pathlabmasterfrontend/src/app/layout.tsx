@@ -21,6 +21,8 @@ export const metadata: Metadata = {
   keywords: [
     "PathLabMaster",
     "pathlabmaster.com",
+    "path lab management software",
+    "path lab master",
     "pathology lab management software",
     "Clinical lab management software",
     "online pathology software",
