@@ -111,6 +111,66 @@ body {
   background-color: rgba(16, 185, 129, 0.12);
 }
 
+.theme-light .workspace-shell .md-doctors-table {
+  border-color: #cbd5e1;
+  background: #ffffff;
+}
+
+.theme-light .workspace-shell .md-doctors-heading,
+.theme-light .workspace-shell .md-doctors-name {
+  color: #172033;
+}
+
+.theme-light .workspace-shell .md-doctors-table-head {
+  color: #475569;
+}
+
+.theme-light .workspace-shell .md-doctors-row {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.theme-light .workspace-shell .md-doctors-row:hover {
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.theme-light .workspace-shell .md-doctors-id {
+  color: #047857;
+}
+
+.theme-light .workspace-shell .md-doctors-id:hover {
+  color: #065f46;
+}
+
+.theme-light .workspace-shell .md-doctors-cell {
+  color: #334155;
+}
+
+.theme-light .workspace-shell .md-doctors-count {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.theme-light .workspace-shell .md-doctors-search-shell {
+  border-color: #cbd5e1;
+  background-color: #ffffff;
+}
+
+.theme-light .workspace-shell .md-doctors-search-input {
+  color: #172033;
+}
+
+.theme-light .workspace-shell .md-doctors-search-input::placeholder {
+  color: #64748b;
+}
+
+.theme-light .workspace-shell .md-doctors-status.is-active {
+  color: #047857;
+}
+
+.theme-light .workspace-shell .md-doctors-status.is-inactive {
+  color: #64748b;
+}
+
 .test-charges-table {
   background: rgba(2, 6, 23, 0.45);
 }

@@ -941,6 +941,93 @@ export async function updateDoctor(formData: FormData) {
   redirect("/admin/doctors?updated=1");
 }
 
+async function saveMdDoctor(formData: FormData, isUpdate: boolean) {
+  const currentUser = await requireUserType("Administrator");
+  const value = (name: string) => String(formData.get(name) ?? "").trim();
+  const mdDoctorId = value("mdDoctorId") || value("doctorId");
+  const doctorName = value("doctorName");
+  const mobileNumber = value("doctorMobileNumber");
+  const email = value("doctorMailId");
+  const signPositionValue = value("signPosition");
+  const numericMobileNumber = Number(mobileNumber);
+  const signPosition = Number(signPositionValue);
+  const signature = formData.get("signature");
+  const hasSignature = signature instanceof File && signature.size > 0;
+  const removeSignature = value("removeSignature") === "true";
+  const route = isUpdate && mdDoctorId
+    ? `/admin/settings/doctor-sign/edit/${encodeURIComponent(mdDoctorId)}`
+    : "/admin/settings/doctor-sign/create";
+
+  if (
+    !doctorName ||
+    !mobileNumber ||
+    !email ||
+    !signPositionValue ||
+    !Number.isFinite(numericMobileNumber) ||
+    !Number.isInteger(signPosition) ||
+    signPosition < 1 ||
+    (!isUpdate && !hasSignature) ||
+    (removeSignature && (!isUpdate || hasSignature)) ||
+    (isUpdate && !mdDoctorId)
+  ) {
+    redirect(`${route}?error=invalid`);
+  }
+
+  const doctor: Record<string, unknown> = {
+    doctorName,
+    doctorMailId: email,
+    doctorMobileNumber: numericMobileNumber,
+    shairingPercentage: 0,
+    labName: currentUser.labName,
+    labId: String(currentUser.labId),
+    educationQulification: value("educationQulification"),
+    signUrl: removeSignature ? null : value("signUrl") || null,
+    active: value("isActive") === "true",
+    signPosition,
+    createdBy: isUpdate ? Number(value("createdBy") || currentUser.userId) : Number(currentUser.userId),
+  };
+
+  if (isUpdate && mdDoctorId) doctor.mdDoctorId = mdDoctorId;
+  if (removeSignature) doctor.signImage = null;
+
+  const requestBody = new FormData();
+  requestBody.append(
+    "doctor",
+    stringifyApiPayload(doctor, ["labId", "createdBy", "mdDoctorId"]),
+  );
+  if (hasSignature && signature instanceof File) {
+    requestBody.append("signature", signature, signature.name);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(
+      isUpdate ? API_ENDPOINTS.updateMdDoctor : API_ENDPOINTS.createMdDoctor,
+      {
+        method: "POST",
+        body: requestBody,
+        cache: "no-store",
+      },
+    );
+  } catch {
+    redirect(`${route}?error=connection`);
+  }
+
+  if (!response.ok) {
+    redirect(`${route}?error=${response.status}`);
+  }
+
+  redirect("/admin/settings/doctor-sign?updated=1");
+}
+
+export async function createMdDoctor(formData: FormData) {
+  return saveMdDoctor(formData, false);
+}
+
+export async function updateMdDoctor(formData: FormData) {
+  return saveMdDoctor(formData, true);
+}
+
 export async function deleteDoctor(formData: FormData) {
   await requireUserType("Administrator");
   const doctorId = String(formData.get("doctorId") ?? "").trim();

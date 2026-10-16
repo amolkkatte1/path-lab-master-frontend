@@ -44,6 +44,9 @@ export const API_ENDPOINTS = {
   getDoctor: `${API_BASE_URL}/doctor/get`,
   updateDoctor: `${API_BASE_URL}/doctor/update`,
   deleteDoctor: `${API_BASE_URL}/doctor/delete`,
+  mdDoctorList: `${API_BASE_URL}/doctor/md/list`,
+  createMdDoctor: `${API_BASE_URL}/doctor/md/create`,
+  updateMdDoctor: `${API_BASE_URL}/doctor/md/update`,
   parameterList: `${API_BASE_URL}/parameter/list`,
   createParameter: `${API_BASE_URL}/parameter/create`,
   getParameter: `${API_BASE_URL}/parameter/get`,
@@ -77,6 +80,10 @@ export function getPendingReportsByPatientId(
 
 export function getDoctorListByLabId(labId: number | string) {
   return `${API_BASE_URL}/doctor/list/labId/${labId}`;
+}
+
+export function getMdDoctorListByLabId(labId: number | string) {
+  return `${API_ENDPOINTS.mdDoctorList}/labId/${labId}`;
 }
 
 export function getTestListByLabId(labId: number | string) {
