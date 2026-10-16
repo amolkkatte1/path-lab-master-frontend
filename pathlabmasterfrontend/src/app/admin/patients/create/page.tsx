@@ -4,6 +4,7 @@ import { createPatient } from "@/app/actions";
 import { getDoctorListByLabId, parseApiResponse } from "@/lib/api";
 import { requireUserType } from "@/lib/auth";
 import { AgeFields } from "./age-fields";
+import { CreatePatientSubmitButton } from "./create-patient-submit-button";
 import { DoctorSelector, type DoctorOption } from "../doctor-selector";
 
 const fields = [
@@ -115,7 +116,7 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
           </label>
         </div>
         <div className="mt-7 flex flex-wrap gap-3">
-          <button type="submit" className="create-action-button rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">Create patient</button>
+          <CreatePatientSubmitButton />
           <Link href="/admin/patients" className="create-action-button rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">Cancel</Link>
         </div>
       </form>

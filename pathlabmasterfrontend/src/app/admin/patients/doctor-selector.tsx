@@ -65,11 +65,17 @@ export function DoctorSelector({
       const viewportOffsetTop = viewport?.offsetTop ?? 0;
       const viewportOffsetLeft = viewport?.offsetLeft ?? 0;
       const viewportHeight = viewport?.height ?? window.innerHeight;
-      const below = viewportHeight - rect.bottom - gap;
-      const maxHeight = Math.max(100, Math.min(320, below));
+      const visibleBottom = viewportOffsetTop + viewportHeight;
+      const below = Math.max(0, visibleBottom - rect.bottom - gap);
+      const above = Math.max(0, rect.top - viewportOffsetTop - gap);
+      const keyboardOpen = Boolean(viewport && window.innerHeight - viewport.height > 120);
+      const placeBelow = !keyboardOpen || below >= 160 || below >= above;
+      const maxHeight = Math.max(1, Math.min(320, placeBelow ? below : above));
       setDropdownRect({
         left: rect.left + viewportOffsetLeft,
-        top: rect.bottom + viewportOffsetTop + gap,
+        top: placeBelow
+          ? rect.bottom + viewportOffsetTop + gap
+          : rect.top + viewportOffsetTop - maxHeight - gap,
         width: rect.width,
         maxHeight,
       });
