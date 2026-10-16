@@ -103,6 +103,9 @@ function DateInput({
         value={value}
         min={min}
         max={max}
+        onClick={() => {
+          if (window.matchMedia("(pointer: fine)").matches) openPicker();
+        }}
         onChange={(event) => {
           onValidityChange(true);
           onChange(event.target.value);
