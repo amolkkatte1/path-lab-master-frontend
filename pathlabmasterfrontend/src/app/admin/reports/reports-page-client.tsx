@@ -360,7 +360,7 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
     patientId: item.patientId ? String(item.patientId) : "",
     labId: item.labId ? String(item.labId) : "",
     patientName,
-    regDate: formatRegistrationDate(item.createdAt),
+    regDate: formatRegistrationDate(item.patientCreatedAt),
     type: "OPD",
     doctor: doctorName,
     regNo,
