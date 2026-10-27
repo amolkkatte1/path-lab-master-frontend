@@ -5,7 +5,7 @@ import { useState } from "react";
 
 const monthlyPlans = [
   { id: "1m", label: "1 Month", price: 1000, maxBills: 1500 },
-  { id: "3m", label: "3 Month", price: 2800, maxBills: 4599 },
+  { id: "3m", label: "3 Month", price: 2800, maxBills: 4500 },
   { id: "6m", label: "6 Month", price: 5500, maxBills: 9000 },
 ];
 

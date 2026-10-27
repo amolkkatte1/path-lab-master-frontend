@@ -267,7 +267,6 @@ type ReportRow = {
   type: string;
   doctor: string;
   regNo: string;
-  ccNo: string;
   tests: ReportTest[];
 };
 
@@ -299,6 +298,18 @@ function toRecord(value: unknown): UnknownRecord {
 
 function testDisplayName(testKey: string) {
   return testKey.replace(/_\d+$/, "");
+}
+
+function formatRegistrationDate(value: string | null | undefined) {
+  if (!value) return "N/A";
+
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  const date = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(value.replace(" ", "T"));
+
+  if (Number.isNaN(date.getTime())) return "N/A";
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function toTestStatus(value: unknown): TestStatus | undefined {
@@ -349,11 +360,10 @@ function mapReportApiItem(item: ReportApiItem): ReportRow {
     patientId: item.patientId ? String(item.patientId) : "",
     labId: item.labId ? String(item.labId) : "",
     patientName,
-    regDate: today.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
+    regDate: formatRegistrationDate(item.createdAt),
     type: "OPD",
     doctor: doctorName,
     regNo,
-    ccNo: "CC: N/A",
     tests: testEntries.map(([testName, testKey]) => {
       const statusEntry = toTestStatus(statuses[testKey])
         ?? toTestStatus(Object.entries(statuses).find(([statusKey]) => testDisplayName(statusKey) === testName)?.[1]);
@@ -696,10 +706,9 @@ export default function ReportsPageClient({
                     <span><b>Ref. Doctor:</b> {row.doctor}</span>
                   </div>
 
-                  {/* Row 3: reg no / cc */}
+                  {/* Row 3: reg no */}
                   <div className="report-meta flex flex-wrap gap-x-5 gap-y-0 text-xs leading-5">
                     <span><b>Reg. No.:</b> {row.regNo}</span>
-                    <span><b>CC:</b> N/A</span>
                   </div>
 
                   {/* Row 4: tests */}

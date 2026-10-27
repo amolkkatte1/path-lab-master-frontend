@@ -1907,6 +1907,7 @@ export type ReportListItem = {
   firstName?: string | null;
   middleName?: string | null;
   lastName?: string | null;
+  createdAt?: string | null;
   doctorId?: number | string | null;
   doctorName?: string | null;
   labId?: number | string;
