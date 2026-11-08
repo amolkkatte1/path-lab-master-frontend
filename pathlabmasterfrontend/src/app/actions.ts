@@ -1689,6 +1689,7 @@ export async function updateBillingRecord({
 
 export async function registerReportWithBilling({
   patientId,
+  existingBillId,
   testList,
   paymentMode = "Cash",
   totalAmount,
@@ -1698,6 +1699,7 @@ export async function registerReportWithBilling({
   paymentDue,
 }: {
   patientId: string;
+  existingBillId?: number | string;
   testList: Array<Record<string, unknown>>;
   paymentMode?: string;
   totalAmount: number | string;
@@ -1787,17 +1789,16 @@ export async function registerReportWithBilling({
 
   const mergedTestMap = { ...existingTestMap, ...testMap };
 
-  const hasExistingBill = Boolean(
-    existingBilling &&
-      existingBilling.billId !== undefined &&
-      existingBilling.billId !== null &&
-      String(existingBilling.billId).trim() !== "",
-  );
+  const resolvedBillId = existingBillId ?? existingBilling?.billId;
+  const hasExistingBill =
+    resolvedBillId !== undefined &&
+    resolvedBillId !== null &&
+    String(resolvedBillId).trim() !== "";
 
   const now = new Date();
   const createdAt = now.toISOString().slice(0, 19).replace("T", " ");
-  const billId = hasExistingBill && existingBilling?.billId
-    ? Number(existingBilling.billId)
+  const billId = hasExistingBill
+    ? resolvedBillId
     : Number(
       `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}${String(now.getHours()).padStart(2, "0")}${String(now.getMinutes()).padStart(2, "0")}${String(now.getSeconds()).padStart(2, "0")}`,
     );

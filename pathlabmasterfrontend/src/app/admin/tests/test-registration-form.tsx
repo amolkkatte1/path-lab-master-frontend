@@ -221,6 +221,7 @@ export function TestRegistrationForm({
     try {
       const result = await registerReportWithBilling({
         patientId,
+        existingBillId: existingBilling?.billId,
         testList: selectedTests as unknown as Array<Record<string, unknown>>,
         paymentMode: billingDetails.paymentMode,
         totalAmount,
@@ -464,4 +465,3 @@ export function TestRegistrationForm({
     </>
   );
 }
-
