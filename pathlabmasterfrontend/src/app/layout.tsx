@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
 
   description:
-    "PathLabMaster is an online pathology lab management software designed to simplify diagnostic laboratory operations. Features include easy patient registration, quick test registration, AI-powered CBC auto-filling using OCR from uploaded or captured analyzer images, referral doctor management, laboratory calculations, one-click monthly report generation, and easy data analysis. Its user-friendly interface supports desktop and mobile web browsers, with multiple users per laboratory and access controls. Manage patient records, laboratory tests, and diagnostic reports from one convenient platform with a focus on data security and long-term record management.",
+    "Contact Number : 7972925658, 9156373937 \n PathLabMaster is an online pathology lab management software designed to simplify diagnostic laboratory operations. Features include easy patient registration, quick test registration, AI-powered CBC auto-filling using OCR from uploaded or captured analyzer images, referral doctor management, laboratory calculations, one-click monthly report generation, and easy data analysis. Its user-friendly interface supports desktop and mobile web browsers, with multiple users per laboratory and access controls. Manage patient records, laboratory tests, and diagnostic reports from one convenient platform with a focus on data security and long-term record management.",
 
   applicationName: "PathLabMaster",
 
