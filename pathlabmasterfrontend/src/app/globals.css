@@ -1528,6 +1528,37 @@ body {
   color: #ffffff;
 }
 
+.theme-dark .workspace-shell .patient-form-panel {
+  background: #0f172a;
+  color: #e2e8f0;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.3);
+}
+
+.theme-dark .workspace-shell .patient-form-panel .text-slate-700 {
+  color: #cbd5e1;
+}
+
+.theme-dark .workspace-shell .patient-form-panel input:not([type="hidden"]),
+.theme-dark .workspace-shell .patient-form-panel select {
+  border-color: #475569;
+  background-color: #1e293b;
+  color: #f8fafc;
+  color-scheme: dark;
+}
+
+.theme-dark .workspace-shell .patient-form-panel [data-doctor-selector-root] input {
+  background-color: transparent;
+}
+
+.theme-dark .workspace-shell .patient-form-panel [data-doctor-selector-root] > label > div > div {
+  background-color: #1e293b;
+}
+
+.theme-dark .workspace-shell .patient-form-panel select option {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
 .test-request-table-frame {
   border-color: rgba(148, 163, 184, 0.34);
 }

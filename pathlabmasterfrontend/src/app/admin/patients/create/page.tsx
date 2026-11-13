@@ -6,6 +6,7 @@ import { requireUserType } from "@/lib/auth";
 import { AgeFields } from "./age-fields";
 import { CreatePatientSubmitButton } from "./create-patient-submit-button";
 import { DoctorSelector, type DoctorOption } from "../doctor-selector";
+import { GenderField, PrefixField, PrefixGenderProvider } from "../prefix-gender-fields";
 
 const fields = [
   ["firstName", "First name", "text"],
@@ -53,19 +54,13 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
         </div>
       )}
 
-      <form action={createPatient} className="rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.14)] sm:p-8">
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Prefix <span className="text-red-500">*</span>
-            </span>
-            <select name="prefix" defaultValue="Mr." required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-              <option>Mr.</option>
-              <option>Ms.</option>
-              <option>Mrs.</option>
-              <option>Dr.</option>
-            </select>
-          </label>
+      <form action={createPatient} className="patient-form-panel rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.14)] sm:p-8">
+        <PrefixGenderProvider initialPrefix="Mr.">
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <PrefixField
+            inputClassName="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            labelClassName="mb-2 block text-sm font-semibold text-slate-700"
+          />
           {fields.map(([name, label, type]) => (
             <label key={name}>
               <span className="mb-2 block text-sm font-semibold text-slate-700">
@@ -80,17 +75,10 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
               />
             </label>
           ))}
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Gender <span className="text-red-500">*</span>
-            </span>
-            <select name="gender" required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-              <option value="">Select gender</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-          </label>
+          <GenderField
+            inputClassName="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            labelClassName="mb-2 block text-sm font-semibold text-slate-700"
+          />
           <AgeFields />
           <DoctorSelector
             initialDoctors={doctors}
@@ -114,7 +102,8 @@ export default async function CreatePatientPage({ searchParams }: CreatePatientP
             </span>
             <input name="labId" type="number" defaultValue={String(user.labId)} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </label>
-        </div>
+          </div>
+        </PrefixGenderProvider>
         <div className="mt-7 flex flex-wrap gap-3">
           <CreatePatientSubmitButton />
           <Link href="/admin/patients" className="create-action-button rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">Cancel</Link>

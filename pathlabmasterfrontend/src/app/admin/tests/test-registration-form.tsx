@@ -75,16 +75,15 @@ export function TestRegistrationForm({
   const [billingDetails, setBillingDetails] = useState({
     paymentMode: "Cash",
     discount: String(existingBilling?.discount ?? "0"),
-    paymentReceived: String(existingBilling?.paymentReceived ?? "0"),
     collectedByDoctor: String(existingBilling?.collectedByDoctor ?? "0"),
   });
+  const [paymentReceivedOverride, setPaymentReceivedOverride] = useState<string | null>(null);
 
   useEffect(() => {
     if (existingBilling) {
       setBillingDetails({
         paymentMode: "Cash",
         discount: String(existingBilling.discount ?? "0"),
-        paymentReceived: String(existingBilling.paymentReceived ?? "0"),
         collectedByDoctor: String(existingBilling.collectedByDoctor ?? "0"),
       });
     }
@@ -204,8 +203,11 @@ export function TestRegistrationForm({
 
   const totalAmount = mergedBillingTests.reduce((sum, test) => sum + Number(test.testCharges ?? 0), 0);
   const discountAmount = Number(billingDetails.discount || 0);
-  const paymentReceived = Number(billingDetails.paymentReceived || 0);
   const collectedByDoctor = Number(billingDetails.collectedByDoctor || 0);
+  const calculatedPaymentReceived = totalAmount - (discountAmount + collectedByDoctor);
+  const paymentReceived = paymentReceivedOverride === null
+    ? calculatedPaymentReceived
+    : Number(paymentReceivedOverride || 0);
   const totalNetAmount = Math.max(totalAmount - discountAmount, 0);
   const totalReceived = paymentReceived + collectedByDoctor;
   const paymentDue = Math.max(totalNetAmount - totalReceived, 0);
@@ -226,7 +228,7 @@ export function TestRegistrationForm({
         paymentMode: billingDetails.paymentMode,
         totalAmount,
         discount: billingDetails.discount,
-        paymentReceived: billingDetails.paymentReceived,
+        paymentReceived,
         collectedByDoctor: billingDetails.collectedByDoctor,
         paymentDue,
       });
@@ -404,10 +406,9 @@ export function TestRegistrationForm({
             <input
               type="number"
               step="0.01"
-              value={billingDetails.paymentReceived}
-              onChange={(event) => setBillingDetails((current) => ({ ...current, paymentReceived: event.target.value }))}
+              value={paymentReceivedOverride ?? calculatedPaymentReceived.toFixed(2)}
+              onChange={(event) => setPaymentReceivedOverride(event.target.value)}
               className="billing-input-field w-full rounded-md border px-3 py-2.5 outline-none transition"
-              placeholder="0.00"
             />
           </label>
 

@@ -6,6 +6,7 @@ import { API_ENDPOINTS, getDoctorListByLabId, parseApiResponse, stringifyApiPayl
 import { requireUserType } from "@/lib/auth";
 import { AgeFields } from "../../create/age-fields";
 import { DoctorSelector, type DoctorOption } from "../../doctor-selector";
+import { GenderField, PrefixField, PrefixGenderProvider } from "../../prefix-gender-fields";
 
 const fields = [
   ["firstName", "First name", "text"],
@@ -102,22 +103,16 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
         </div>
       )}
 
-      <form action={updatePatient} className="rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.14)] sm:p-8">
+      <form action={updatePatient} className="patient-form-panel rounded-[24px] bg-white p-6 text-slate-900 shadow-[0_22px_60px_rgba(15,23,42,0.14)] sm:p-8">
         <input type="hidden" name="patientId" value={patient.patientId} />
         <input type="hidden" name="createdBy" value={patient.createdBy ?? ""} />
         <input type="hidden" name="createdAt" value={patient.createdAt ?? ""} />
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Prefix <span className="text-red-500">*</span>
-            </span>
-            <select name="prefix" defaultValue={patient.prefix ?? "Mr."} required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-              <option>Mr.</option>
-              <option>Ms.</option>
-              <option>Mrs.</option>
-              <option>Dr.</option>
-            </select>
-          </label>
+        <PrefixGenderProvider initialPrefix={patient.prefix ?? "Mr."}>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <PrefixField
+            inputClassName="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            labelClassName="mb-2 block text-sm font-semibold text-slate-700"
+          />
           {fields.map(([name, label, type]) => (
             <label key={name}>
               <span className="mb-2 block text-sm font-semibold text-slate-700">
@@ -133,17 +128,10 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
               />
             </label>
           ))}
-          <label>
-            <span className="mb-2 block text-sm font-semibold text-slate-700">
-              Gender <span className="text-red-500">*</span>
-            </span>
-            <select name="gender" defaultValue={patient.gender ?? ""} required className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
-              <option value="">Select gender</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-            </select>
-          </label>
+          <GenderField
+            inputClassName="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100"
+            labelClassName="mb-2 block text-sm font-semibold text-slate-700"
+          />
           <AgeFields initialDateOfBirth={dateInputValue(patient.dateOfBirth ?? "")} initialAge={{ years: Number(patient.year ?? 0), months: Number(patient.month ?? 0), days: Number(patient.days ?? 0) }} />
           <DoctorSelector
             initialDoctors={doctors}
@@ -169,7 +157,8 @@ export default async function EditPatientPage({ params, searchParams }: EditPati
             </span>
             <input name="labId" type="number" defaultValue={String(patient.labId ?? "")} required className="w-full rounded-xl border border-slate-300 px-3 py-2.5 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
           </label>
-        </div>
+          </div>
+        </PrefixGenderProvider>
         <div className="mt-7 flex flex-wrap gap-3">
           <button type="submit" className="create-action-button rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">Update patient</button>
           <Link href="/admin/patients" className="create-action-button rounded-xl bg-slate-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700">Cancel</Link>
