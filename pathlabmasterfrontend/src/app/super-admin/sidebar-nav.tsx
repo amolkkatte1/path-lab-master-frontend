@@ -3,12 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  FiBox,
   FiBriefcase,
   FiClipboard,
-  FiGrid,
   FiHome,
-  FiSettings,
   FiShield,
   FiActivity,
   FiUsers,
@@ -58,33 +55,6 @@ const primaryItems: NavItem[] = [
     icon: FiActivity,
     match: "prefix",
   }
-];
-
-const masterItems: NavItem[] = [
-  {
-    href: "/super-admin/masters/labs",
-    label: "Lab Master",
-    icon: FiClipboard,
-    match: "prefix",
-  },
-  {
-    href: "/super-admin/masters/tests",
-    label: "Test Master",
-    icon: FiBox,
-    match: "prefix",
-  },
-  {
-    href: "/super-admin/masters/packages",
-    label: "Package Master",
-    icon: FiGrid,
-    match: "prefix",
-  },
-  {
-    href: "/super-admin/masters/settings",
-    label: "Global Settings",
-    icon: FiSettings,
-    match: "prefix",
-  },
 ];
 
 function isItemActive(pathname: string, item: NavItem) {
@@ -152,7 +122,6 @@ export function SuperAdminSidebarNav() {
       </div>
 
       <SidebarSection title="Navigation" items={primaryItems} />
-      <SidebarSection title="Masters" items={masterItems} />
     </div>
   );
 }
